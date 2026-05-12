@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140" width="120" height="140">
+  <defs>
+    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="6" stdDeviation="5" flood-opacity="0.08"/>
+    </filter>
+    <filter id="furTexture" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <linearGradient id="bodyFur" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFAF0"/>
+      <stop offset="50%" style="stop-color:#FFEFD5"/>
+      <stop offset="100%" style="stop-color:#FFE4B5"/>
+    </linearGradient>
+    <linearGradient id="headFur" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFF8DC"/>
+      <stop offset="40%" style="stop-color:#FFE4B5"/>
+      <stop offset="100%" style="stop-color:#FFDAB9"/>
+    </linearGradient>
+  </defs>
+  
+  <g filter="url(#softShadow)">
+    <ellipse cx="60" cy="130" rx="35" ry="5" fill="rgba(0,0,0,0.04)" opacity="0.5"/>
+    
+    <ellipse cx="60" cy="92" rx="28" ry="28" fill="url(#bodyFur)"/>
+    
+    <ellipse cx="48" cy="84" rx="10" ry="12" fill="#FFFEF0"/>
+    <ellipse cx="72" cy="84" rx="10" ry="12" fill="#FFFEF0"/>
+    
+    <ellipse cx="49" cy="110" rx="9" ry="6" fill="#FFEFD5"/>
+    <ellipse cx="71" cy="110" rx="9" ry="6" fill="#FFEFD5"/>
+    
+    <ellipse cx="50" cy="112" rx="5" ry="3" fill="#FFB6C1" opacity="0.5"/>
+    <ellipse cx="54" cy="113" rx="4" ry="2" fill="#FFB6C1" opacity="0.5"/>
+    <ellipse cx="70" cy="112" rx="5" ry="3" fill="#FFB6C1" opacity="0.5"/>
+    <ellipse cx="74" cy="113" rx="4" ry="2" fill="#FFB6C1" opacity="0.5"/>
+    
+    <path d="M78 86 Q95 70 90 52" stroke="#FFE4B5" stroke-width="8" fill="none" stroke-linecap="round"/>
+    
+    <circle cx="60" cy="48" r="36" fill="url(#headFur)"/>
+    
+    <circle cx="60" cy="58" r="26" fill="#FFF8DC"/>
+    
+    <ellipse cx="32" cy="22" rx="12" ry="16" fill="#FFE4B5"/>
+    <ellipse cx="88" cy="22" rx="12" ry="16" fill="#FFE4B5"/>
+    
+    <ellipse cx="32" cy="24" rx="7" ry="10" fill="#FFB6C1"/>
+    <ellipse cx="88" cy="24" rx="7" ry="10" fill="#FFB6C1"/>
+    
+    <circle cx="32" cy="20" r="3" fill="#FFEFD5" opacity="0.6"/>
+    <circle cx="88" cy="20" r="3" fill="#FFEFD5" opacity="0.6"/>
+    
+    <circle cx="40" cy="48" r="15" fill="#1a1a1a"/>
+    <circle cx="80" cy="48" r="15" fill="#1a1a1a"/>
+    
+    <circle cx="36" cy="43" r="8" fill="white"/>
+    <circle cx="76" cy="43" r="8" fill="white"/>
+    
+    <circle cx="43" cy="53" r="3" fill="rgba(255,255,255,0.5)"/>
+    <circle cx="83" cy="53" r="3" fill="rgba(255,255,255,0.5)"/>
+    
+    <circle cx="37" cy="44" r="3" fill="rgba(255,255,255,0.9)"/>
+    <circle cx="77" cy="44" r="3" fill="rgba(255,255,255,0.9)"/>
+    
+    <circle cx="38" cy="45" r="1.5" fill="rgba(255,255,255,0.7)"/>
+    <circle cx="78" cy="45" r="1.5" fill="rgba(255,255,255,0.7)"/>
+    
+    <polygon points="60,62 56,58 64,58" fill="#FFB6C1"/>
+    
+    <path d="M55 66 Q60 70 65 66" stroke="#8B4513" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+    
+    <line x1="22" y1="58" x2="38" y2="60" stroke="#5a5a5a" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="22" y1="65" x2="38" y2="65" stroke="#5a5a5a" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="22" y1="72" x2="38" y2="70" stroke="#5a5a5a" stroke-width="1.2" stroke-linecap="round"/>
+    
+    <line x1="82" y1="60" x2="98" y2="58" stroke="#5a5a5a" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="82" y1="65" x2="98" y2="65" stroke="#5a5a5a" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="82" y1="70" x2="98" y2="72" stroke="#5a5a5a" stroke-width="1.2" stroke-linecap="round"/>
+    
+    <ellipse cx="32" cy="66" rx="12" ry="7" fill="#FFB6C1" opacity="0.6"/>
+    <ellipse cx="88" cy="66" rx="12" ry="7" fill="#FFB6C1" opacity="0.6"/>
+    
+    <circle cx="42" cy="30" r="4" fill="#FFEFD5" opacity="0.4"/>
+    <circle cx="78" cy="30" r="4" fill="#FFEFD5" opacity="0.4"/>
+  </g>
+</svg>

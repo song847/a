@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>科幻登录转场演示</title>
+    <style>
+        /* === 基础重置 === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* === 主容器 === */
+        .app-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: #0A0A0F;
+        }
+
+        /* === 星空背景 === */
+        .starfield {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at 50% 50%, #0F172A 0%, #0A0A0F 100%);
+            overflow: hidden;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s ease-in-out infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* === 登录容器 === */
+        .auth-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotateY(0deg);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            z-index: 100;
+            transition: transform 0.65s cubic-bezier(0.15, 0.85, 0.12, 1), opacity 0.5s ease;
+        }
+
+        .auth-container.flipping {
+            animation: authFlip 0.65s cubic-bezier(0.15, 0.85, 0.12, 1);
+        }
+
+        .auth-container.falling {
+            animation: authFall 0.35s cubic-bezier(0.15, 0.85, 0.12, 1) forwards;
+        }
+
+        @keyframes authFlip {
+            0% { transform: translate(-50%, -50%) rotateY(0deg) translateZ(0); }
+            25% { transform: translate(-50%, -50%) rotateY(-15deg) translateZ(-30px); }
+            50% { transform: translate(-50%, -50%) rotateY(-25deg) translateZ(-50px); }
+            75% { transform: translate(-50%, -50%) rotateY(-10deg) translateZ(-20px); }
+            100% { transform: translate(-50%, -50%) rotateY(0deg) translateZ(0); }
+        }
+
+        @keyframes authFall {
+            0% { 
+                transform: translate(-50%, -50%) rotateY(0deg) translateZ(0); 
+                opacity: 1; 
+                filter: brightness(1);
+            }
+            50% { 
+                transform: translate(-50%, -40%) rotateY(-15deg) translateZ(-100px); 
+                opacity: 0.7; 
+                filter: brightness(0.5);
+            }
+            100% { 
+                transform: translate(-50%, 150%) rotateY(-30deg) translateZ(-200px); 
+                opacity: 0; 
+                filter: brightness(0);
+            }
+        }
+
+        /* === 玻璃拟态卡片 === */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px 50px;
+            min-width: 380px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 8px 32px rgba(6, 182, 212, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(6, 182, 212, 0.05) 50%,
+                transparent 100%
+            );
+            animation: auroraSweep 3s ease-in-out infinite;
+        }
+
+        @keyframes auroraSweep {
+            0% { left: -100%; }
+            50% { left: 100%; }
+            100% { left: 100%; }
+        }
+
+        /* === 撕裂蒙版 === */
+        .tear-mask {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 10;
+            opacity: 0;
+        }
+
+        .auth-container.flipping .tear-mask {
+            opacity: 1;
+        }
+
+        .tear-line {
+            position: absolute;
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(
+                180deg,
+                transparent 0%,
+                rgba(6, 182, 212, 0.6) 20%,
+                rgba(124, 58, 237, 0.6) 50%,
+                rgba(236, 72, 153, 0.4) 80%,
+                transparent 100%
+            );
+            animation: tearSpread 0.65s cubic-bezier(0.15, 0.85, 0.12, 1) forwards;
+        }
+
+        .tear-line:nth-child(1) { left: 30%; animation-delay: 0s; }
+        .tear-line:nth-child(2) { left: 45%; animation-delay: 0.1s; }
+        .tear-line:nth-child(3) { left: 60%; animation-delay: 0.2s; }
+        .tear-line:nth-child(4) { left: 75%; animation-delay: 0.3s; }
+
+        @keyframes tearSpread {
+            0% { height: 0; opacity: 0; }
+            20% { opacity: 1; }
+            100% { height: 100%; opacity: 0; }
+        }
+
+        /* === 极光洪流 === */
+        .aurora-flood {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                from 0deg,
+                rgba(6, 182, 212, 0.3) 0deg,
+                rgba(124, 58, 237, 0.3) 60deg,
+                rgba(236, 72, 153, 0.2) 120deg,
+                rgba(6, 182, 212, 0.3) 180deg,
+                rgba(124, 58, 237, 0.3) 240deg,
+                rgba(236, 72, 153, 0.2) 300deg,
+                rgba(6, 182, 212, 0.3) 360deg
+            );
+            opacity: 0;
+            animation: auroraFlood 0.65s cubic-bezier(0.15, 0.85, 0.12, 1) forwards;
+        }
+
+        .auth-container.flipping .aurora-flood {
+            opacity: 0.5;
+        }
+
+        @keyframes auroraFlood {
+            0% { transform: scale(0) rotate(0deg); opacity: 0; }
+            50% { transform: scale(1.5) rotate(180deg); opacity: 0.6; }
+            100% { transform: scale(2) rotate(360deg); opacity: 0; }
+        }
+
+        /* === Logo === */
+        .logo-circle {
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 25px;
+            background: linear-gradient(135deg, #06B6D4, #7C3AED);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.4);
+            animation: logoPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes logoPulse {
+            0%, 100% { box-shadow: 0 0 30px rgba(6, 182, 212, 0.4); }
+            50% { box-shadow: 0 0 50px rgba(124, 58, 237, 0.6); }
+        }
+
+        /* === 标题 === */
+        .title {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.95);
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+        }
+
+        .title p {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+
+        /* === 表单 === */
+        .form-container {
+            position: relative;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: #06B6D4;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* === 按钮 === */
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #06B6D4, #0EA5E9);
+            color: white;
+            box-shadow: 0 4px 20px rgba(6, 182, 212, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(6, 182, 212, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-primary.energizing {
+            animation: btnEnergize 0.35s cubic-bezier(0.15, 0.85, 0.12, 1) forwards;
+        }
+
+        @keyframes btnEnergize {
+            0% { 
+                transform: scale(1); 
+                border-radius: 10px; 
+                box-shadow: 0 4px 20px rgba(6, 182, 212, 0.3);
+            }
+            50% { 
+                transform: scale(0.9); 
+                border-radius: 50%; 
+                box-shadow: 0 0 40px rgba(124, 58, 237, 0.6);
+            }
+            100% { 
+                transform: scale(0); 
+                border-radius: 50%; 
+                box-shadow: 0 0 60px rgba(124, 58, 237, 0.8);
+                opacity: 0;
+            }
+        }
+
+        /* === 切换链接 === */
+        .toggle-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .toggle-link span {
+            color: #06B6D4;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .toggle-link span:hover {
+            color: #22D3EE;
+        }
+
+        /* === 登录表单 === */
+        .login-form, .register-form {
+            position: relative;
+        }
+
+        .form-transition-out {
+            animation: formOut 0.4s cubic-bezier(0.15, 0.85, 0.12, 1) forwards;
+        }
+
+        .form-transition-in {
+            animation: formIn 0.4s cubic-bezier(0.15, 0.85, 0.12, 1) forwards;
+        }
+
+        @keyframes formOut {
+            0% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+            100% { opacity: 0; transform: translateY(-20px) scale(0.95); filter: blur(10px); }
+        }
+
+        @keyframes formIn {
+            0% { opacity: 0; transform: translateY(20px) scale(0.95); filter: blur(10px); }
+            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+
+        /* === 转场屏幕 === */
+        .transition-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            background: #050508;
+            transition: opacity 0.1s ease;
+        }
+
+        .transition-screen.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* === 阶段2: 新背景 === */
+        .transition-screen.new-background {
+            background: linear-gradient(180deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
+        }
+
+        .energy-core {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        .transition-screen.new-background .energy-core {
+            opacity: 1;
+            animation: corePulse 0.3s ease-out;
+        }
+
+        .energy-core::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #7C3AED 0%, transparent 70%);
+            animation: coreGlow 0.3s ease-out;
+        }
+
+        .energy-core::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.3) 0%, transparent 70%);
+            animation: coreAura 0.3s ease-out;
+        }
+
+        @keyframes corePulse {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        @keyframes coreGlow {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        @keyframes coreAura {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        /* === 阶段3: 粒子迸发 === */
+        .particle-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        .particle.blue {
+            background: #06B6D4;
+            box-shadow: 0 0 10px #06B6D4, 0 0 20px #06B6D4;
+        }
+
+        .particle.purple {
+            background: #7C3AED;
+            box-shadow: 0 0 10px #7C3AED, 0 0 20px #7C3AED;
+        }
+
+        .particle.pink {
+            background: #EC4899;
+            box-shadow: 0 0 10px #EC4899, 0 0 20px #EC4899;
+        }
+
+        .particle.burst {
+            animation: particleBurst 0.3s cubic-bezier(0.15, 0.85, 0.12, 1) forwards;
+        }
+
+        @keyframes particleBurst {
+            0% { 
+                transform: translate(-50%, -50%) scale(0); 
+                opacity: 0; 
+            }
+            20% { 
+                opacity: 1; 
+            }
+            100% { 
+                transform: translate(var(--tx), var(--ty)) scale(1); 
+                opacity: 0; 
+            }
+        }
+
+        /* === 裂痕效果 === */
+        .crack-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .crack-line {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 2px;
+            height: 0;
+            background: linear-gradient(
+                180deg,
+                transparent 0%,
+                rgba(6, 182, 212, 0.8) 50%,
+                rgba(124, 58, 237, 0.6) 100%
+            );
+            transform-origin: top center;
+        }
+
+        .crack-line.cracking {
+            animation: crackExpand 0.3s cubic-bezier(0.15, 0.85, 0.12, 1) forwards;
+        }
+
+        @keyframes crackExpand {
+            0% { height: 0; opacity: 0; }
+            20% { opacity: 1; }
+            100% { height: 50vh; opacity: 0; }
+        }
+
+        /* === 阶段4/5: 光幕 === */
+        .curtain-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            opacity: 0;
+        }
+
+        .curtain-container.visible {
+            opacity: 1;
+            transition: opacity 0.1s ease;
+        }
+
+        .curtain-left, .curtain-right {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 50%;
+            background: linear-gradient(180deg, 
+                #87CEEB 0%, 
+                #4FC3F7 30%, 
+                #87CEEB 60%, 
+                #4FC3F7 100%
+            );
+            box-shadow: 
+                inset -60px 0 120px rgba(0, 0, 0, 0.3),
+                inset 20px 0 60px rgba(255, 255, 255, 0.1),
+                0 0 100px rgba(135, 206, 235, 0.5);
+        }
+
+        .curtain-left {
+            left: 0;
+        }
+
+        .curtain-right {
+            right: 0;
+        }
+
+        .curtain-left.opening, .curtain-right.opening {
+            animation: curtainOpen 0.35s cubic-bezier(0.12, 0.92, 0.15, 1) forwards;
+        }
+
+        .curtain-left.opening {
+            animation-name: curtainOpenLeft;
+        }
+
+        .curtain-right.opening {
+            animation-name: curtainOpenRight;
+        }
+
+        @keyframes curtainOpenLeft {
+            0% { transform: translateX(0); opacity: 1; }
+            100% { transform: translateX(-105%); opacity: 0; }
+        }
+
+        @keyframes curtainOpenRight {
+            0% { transform: translateX(0); opacity: 1; }
+            100% { transform: translateX(105%); opacity: 0; }
+        }
+
+        /* === 珠光纹理 === */
+        .curtain-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(
+                ellipse at 30% 20%,
+                rgba(224, 247, 250, 0.1) 0%,
+                transparent 50%
+            ),
+            radial-gradient(
+                ellipse at 70% 80%,
+                rgba(224, 247, 250, 0.08) 0%,
+                transparent 50%
+            );
+        }
+
+        /* === 主界面 === */
+        .dashboard {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
+            opacity: 0;
+            transform: scale(0.95);
+            transition: all 0.6s cubic-bezier(0.15, 0.85, 0.12, 1);
+            z-index: 50;
+        }
+
+        .dashboard.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* === 导航栏 === */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            opacity: 0;
+            animation: navSlideDown 0.4s ease 0.3s forwards;
+        }
+
+        @keyframes navSlideDown {
+            0% { opacity: 0; transform: translateY(-20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .nav-logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #06B6D4, #7C3AED);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .nav-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-item {
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-item:hover {
+            color: #06B6D4;
+        }
+
+        .nav-item::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: #06B6D4;
+            transition: width 0.3s ease;
+        }
+
+        .nav-item:hover::after {
+            width: 100%;
+        }
+
+        .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #7C3AED, #EC4899);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* === 主内容 === */
+        .main-content {
+            padding: 40px;
+            opacity: 0;
+            animation: contentFadeIn 0.5s ease 0.5s forwards;
+        }
+
+        @keyframes contentFadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* === 模块卡片 === */
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+        }
+
+        .module-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 30px;
+            transition: all 0.3s ease;
+            opacity: 0;
+        }
+
+        .module-card:nth-child(1) { animation: cardPopIn 0.3s ease 0.6s forwards; }
+        .module-card:nth-child(2) { animation: cardPopIn 0.3s ease 0.7s forwards; }
+        .module-card:nth-child(3) { animation: cardPopIn 0.3s ease 0.8s forwards; }
+        .module-card:nth-child(4) { animation: cardPopIn 0.3s ease 0.9s forwards; }
+
+        @keyframes cardPopIn {
+            0% { opacity: 0; transform: scale(0.9) translateY(20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .module-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 40px rgba(6, 182, 212, 0.1);
+        }
+
+        .module-icon {
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+
+        .module-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 8px;
+        }
+
+        .module-desc {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            line-height: 1.5;
+        }
+
+        /* === 状态指示器 === */
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10B981;
+            box-shadow: 0 0 10px #10B981;
+            animation: statusPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { box-shadow: 0 0 10px #10B981; }
+            50% { box-shadow: 0 0 20px #10B981, 0 0 30px #10B981; }
+        }
+
+        /* === 响应式 === */
+        @media (max-width: 768px) {
+            .glass-card {
+                min-width: 90%;
+                padding: 30px;
+            }
+
+            .modules-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .navbar {
+                padding: 15px 20px;
+            }
+
+            .nav-menu {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 星空背景 -->
+        <div class="starfield" id="starfield"></div>
+
+        <!-- 登录容器 -->
+        <div class="auth-container" id="authContainer">
+            <div class="glass-card">
+                <!-- 撕裂蒙版 -->
+                <div class="tear-mask" id="tearMask">
+                    <div class="tear-line"></div>
+                    <div class="tear-line"></div>
+                    <div class="tear-line"></div>
+                    <div class="tear-line"></div>
+                </div>
+
+                <!-- 极光洪流 -->
+                <div class="aurora-flood" id="auroraFlood"></div>
+
+                <!-- Logo -->
+                <div class="logo-circle">S</div>
+
+                <!-- 标题 -->
+                <div class="title">
+                    <h1>Social Schedule</h1>
+                    <p>科幻登录系统</p>
+                </div>
+
+                <!-- 表单容器 -->
+                <div class="form-container" id="formContainer">
+                    <!-- 登录表单 -->
+                    <div class="login-form" id="loginForm">
+                        <div class="form-group">
+                            <label>用户ID</label>
+                            <input type="text" placeholder="请输入6位数字ID" id="loginId">
+                        </div>
+                        <div class="form-group">
+                            <label>密码</label>
+                            <input type="password" placeholder="请输入密码" id="loginPassword">
+                        </div>
+                        <button class="btn btn-primary" id="loginBtn">登录</button>
+                        <p class="toggle-link">没有账号？ <span id="goRegister">去注册</span></p>
+                    </div>
+
+                    <!-- 注册表单 -->
+                    <div class="register-form" id="registerForm" style="display: none;">
+                        <div class="form-group">
+                            <label>用户名</label>
+                            <input type="text" placeholder="请输入昵称" id="regUsername">
+                        </div>
+                        <div class="form-group">
+                            <label>密码</label>
+                            <input type="password" placeholder="请输入密码" id="regPassword">
+                        </div>
+                        <button class="btn btn-primary" id="registerBtn">注册</button>
+                        <p class="toggle-link">已有账号？ <span id="goLogin">去登录</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 转场屏幕 -->
+        <div class="transition-screen" id="transitionScreen">
+            <!-- 能量核心 -->
+            <div class="energy-core" id="energyCore"></div>
+
+            <!-- 粒子容器 -->
+            <div class="particle-container" id="particleContainer"></div>
+
+            <!-- 裂痕容器 -->
+            <div class="crack-container" id="crackContainer"></div>
+
+            <!-- 光幕容器 -->
+            <div class="curtain-container" id="curtainContainer">
+                <div class="curtain-left" id="curtainLeft"></div>
+                <div class="curtain-right" id="curtainRight"></div>
+            </div>
+        </div>
+
+        <!-- 主界面 -->
+        <div class="dashboard" id="dashboard">
+            <!-- 导航栏 -->
+            <div class="navbar">
+                <div class="nav-brand">
+                    <div class="nav-logo">S</div>
+                    <span class="nav-title">Social Schedule</span>
+                </div>
+                <div class="nav-menu">
+                    <a href="#" class="nav-item">日程管理</a>
+                    <a href="#" class="nav-item">社交中心</a>
+                    <a href="#" class="nav-item">生活圈</a>
+                    <a href="#" class="nav-item">音乐</a>
+                    <a href="#" class="nav-item">小衣柜</a>
+                </div>
+                <div class="nav-user">
+                    <div class="status-indicator"></div>
+                    <div class="user-avatar">U</div>
+                </div>
+            </div>
+
+            <!-- 主内容 -->
+            <div class="main-content">
+                <div class="modules-grid">
+                    <div class="module-card">
+                        <div class="module-icon">📅</div>
+                        <div class="module-title">日程管理</div>
+                        <div class="module-desc">管理您的每日计划，设置提醒和任务安排</div>
+                    </div>
+                    <div class="module-card">
+                        <div class="module-icon">👥</div>
+                        <div class="module-title">社交中心</div>
+                        <div class="module-desc">与好友聊天，发送消息，建立社交关系</div>
+                    </div>
+                    <div class="module-card">
+                        <div class="module-icon">📸</div>
+                        <div class="module-title">生活圈</div>
+                        <div class="module-desc">分享生活点滴，记录美好瞬间</div>
+                    </div>
+                    <div class="module-card">
+                        <div class="module-icon">🎵</div>
+                        <div class="module-title">音乐播放器</div>
+                        <div class="module-desc">享受音乐，放松心情，上传喜爱的歌曲</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === DOM元素 ===
+        const authContainer = document.getElementById('authContainer');
+        const tearMask = document.getElementById('tearMask');
+        const auroraFlood = document.getElementById('auroraFlood');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const loginBtn = document.getElementById('loginBtn');
+        const registerBtn = document.getElementById('registerBtn');
+        const goRegister = document.getElementById('goRegister');
+        const goLogin = document.getElementById('goLogin');
+        const transitionScreen = document.getElementById('transitionScreen');
+        const energyCore = document.getElementById('energyCore');
+        const particleContainer = document.getElementById('particleContainer');
+        const crackContainer = document.getElementById('crackContainer');
+        const curtainContainer = document.getElementById('curtainContainer');
+        const curtainLeft = document.getElementById('curtainLeft');
+        const curtainRight = document.getElementById('curtainRight');
+        const dashboard = document.getElementById('dashboard');
+        const starfield = document.getElementById('starfield');
+
+        // === 生成星空背景 ===
+        function generateStars() {
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = star.style.height = (Math.random() * 2 + 1) + 'px';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starfield.appendChild(star);
+            }
+        }
+
+        // === 生成裂痕 ===
+        function generateCracks() {
+            const angles = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
+            angles.forEach((angle, index) => {
+                const crack = document.createElement('div');
+                crack.className = 'crack-line';
+                crack.style.transform = `rotate(${angle}deg)`;
+                crack.style.animationDelay = (index * 0.02) + 's';
+                crackContainer.appendChild(crack);
+                
+                setTimeout(() => {
+                    crack.classList.add('cracking');
+                }, 50 + index * 20);
+            });
+        }
+
+        // === 生成粒子 ===
+        function generateParticles() {
+            const colors = ['blue', 'purple', 'pink'];
+            for (let i = 0; i < 80; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle ' + colors[Math.floor(Math.random() * colors.length)];
+                const angle = (Math.PI * 2 * i) / 80 + Math.random() * 0.5;
+                const distance = 200 + Math.random() * 300;
+                particle.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
+                particle.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
+                particle.style.animationDelay = Math.random() * 0.1 + 's';
+                particleContainer.appendChild(particle);
+            }
+
+            setTimeout(() => {
+                document.querySelectorAll('.particle').forEach(p => {
+                    p.classList.add('burst');
+                });
+            }, 50);
+        }
+
+        // === 清除粒子和裂痕 ===
+        function clearParticlesAndCracks() {
+            particleContainer.innerHTML = '';
+            crackContainer.innerHTML = '';
+        }
+
+        // === 切换表单 ===
+        function toggleForms(isLogin) {
+            authContainer.classList.add('flipping');
+            tearMask.style.opacity = 1;
+            auroraFlood.style.opacity = 0.5;
+
+            // 淡出当前表单
+            if (isLogin) {
+                loginForm.classList.add('form-transition-out');
+            } else {
+                registerForm.classList.add('form-transition-out');
+            }
+
+            setTimeout(() => {
+                // 隐藏当前表单，显示新表单
+                loginForm.style.display = isLogin ? 'none' : 'block';
+                registerForm.style.display = isLogin ? 'block' : 'none';
+                
+                // 重置动画状态
+                loginForm.classList.remove('form-transition-out');
+                registerForm.classList.remove('form-transition-out');
+                
+                // 淡入新表单
+                if (isLogin) {
+                    registerForm.classList.add('form-transition-in');
+                } else {
+                    loginForm.classList.add('form-transition-in');
+                }
+            }, 400);
+
+            setTimeout(() => {
+                authContainer.classList.remove('flipping');
+                tearMask.style.opacity = 0;
+                auroraFlood.style.opacity = 0;
+            }, 650);
+        }
+
+        // === 登录转场动画 ===
+        function startLoginTransition() {
+            // 阶段1: 按钮蓄能 (0~350ms)
+            loginBtn.classList.add('energizing');
+            
+            setTimeout(() => {
+                // 阶段2: 登录界面湮灭 + 新背景显现 (350~450ms)
+                authContainer.classList.add('falling');
+                transitionScreen.classList.add('visible');
+                
+                setTimeout(() => {
+                    transitionScreen.classList.add('new-background');
+                    
+                    // 阶段3: 粒子迸发 (450~750ms)
+                    setTimeout(() => {
+                        generateCracks();
+                        generateParticles();
+                        
+                        // 阶段4: 切换光幕 (750~850ms)
+                        setTimeout(() => {
+                            clearParticlesAndCracks();
+                            transitionScreen.classList.remove('new-background');
+                            curtainContainer.classList.add('visible');
+                            
+                            // 阶段5: 光幕拉开 (850~1200ms)
+                            setTimeout(() => {
+                                curtainLeft.classList.add('opening');
+                                curtainRight.classList.add('opening');
+                                
+                                // 阶段6: 主界面落地 (1200~1800ms)
+                                setTimeout(() => {
+                                    dashboard.classList.add('visible');
+                                    
+                                    setTimeout(() => {
+                                        transitionScreen.classList.remove('visible');
+                                        curtainContainer.classList.remove('visible');
+                                        curtainLeft.classList.remove('opening');
+                                        curtainRight.classList.remove('opening');
+                                    }, 600);
+                                }, 350);
+                            }, 100);
+                        }, 100);
+                    }, 100);
+                }, 100);
+            }, 350);
+        }
+
+        // === 事件监听 ===
+        goRegister.addEventListener('click', () => toggleForms(true));
+        goLogin.addEventListener('click', () => toggleForms(false));
+        
+        loginBtn.addEventListener('click', startLoginTransition);
+        
+        registerBtn.addEventListener('click', () => {
+            alert('注册成功！您的用户ID: ' + Math.floor(100000 + Math.random() * 900000));
+            toggleForms(false);
+        });
+
+        // === 初始化 ===
+        generateStars();
+    </script>
+</body>
+</html>
