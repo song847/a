@@ -64,6 +64,32 @@ function initDb(dbPath = './database.sqlite', callback) {
       FOREIGN KEY (user_id) REFERENCES users (id)
     )`);
 
+    db.exec(`CREATE TABLE IF NOT EXISTS wardrobe (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      category TEXT NOT NULL,
+      sub_category TEXT,
+      color TEXT,
+      style TEXT,
+      image_url TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users (id)
+    )`);
+
+    db.exec(`CREATE TABLE IF NOT EXISTS music (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      artist TEXT,
+      album TEXT,
+      url TEXT NOT NULL,
+      filename TEXT NOT NULL,
+      is_exclusive INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users (id)
+    )`);
+
     db.pragma('journal_mode = WAL');
     if (callback) callback(null);
   } catch (err) {

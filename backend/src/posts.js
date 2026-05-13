@@ -9,8 +9,10 @@ if (!fs.existsSync(UPLOAD_DIR)) {
 }
 
 function createPost(req, res) {
-  const { user_id, content, media_url, media_type } = req.body;
-  if (!user_id || (!content && !media_url)) {
+  const { content, media_url, media_type } = req.body;
+  const user_id = req.user.id;
+
+  if (!content && !media_url) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
 
@@ -37,7 +39,7 @@ function createPost(req, res) {
         content, 
         media_url,
         media_type,
-        created_at: new Date().toISOString()
+        created_at: localTime
       }
     });
   } catch (err) {
@@ -66,7 +68,7 @@ function getPosts(req, res) {
 
 function deletePost(req, res) {
   const { id } = req.params;
-  const { user_id } = req.query;
+  const user_id = req.user.id;
   
   const db = getDb();
   try {
@@ -75,13 +77,16 @@ function deletePost(req, res) {
       return res.status(404).json({ success: false, error: 'Post not found' });
     }
     
-    if (post.user_id !== parseInt(user_id)) {
+    if (post.user_id !== user_id && req.user.is_admin !== 1) {
       return res.status(403).json({ success: false, error: 'Permission denied' });
     }
     
     if (post.media_url) {
-      const filePath = path.join(UPLOAD_DIR, path.basename(post.media_url));
-      fs.unlinkSync(filePath);
+      const fileName = path.basename(post.media_url);
+      const filePath = path.join(UPLOAD_DIR, fileName);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
     }
     
     db.prepare('DELETE FROM posts WHERE id = ?').run(id);

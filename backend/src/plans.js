@@ -1,9 +1,11 @@
 const { getDb } = require('./db');
 
 function getPlans(req, res) {
-  const { user_id, date } = req.query;
-  if (!user_id || !date) {
-    return res.status(400).json({ success: false, error: 'Missing user_id or date' });
+  const { date } = req.query;
+  const user_id = req.user.id;
+
+  if (!date) {
+    return res.status(400).json({ success: false, error: 'Missing date' });
   }
 
   const db = getDb();
@@ -18,8 +20,10 @@ function getPlans(req, res) {
 }
 
 function addPlan(req, res) {
-  const { user_id, content, start_time, end_time, date } = req.body;
-  if (!user_id || !content || !start_time || !end_time || !date) {
+  const { content, start_time, end_time, date } = req.body;
+  const user_id = req.user.id;
+
+  if (!content || !start_time || !end_time || !date) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
 
@@ -39,8 +43,19 @@ function addPlan(req, res) {
 
 function deletePlan(req, res) {
   const { id } = req.params;
+  const user_id = req.user.id;
+
   const db = getDb();
   try {
+    const plan = db.prepare('SELECT * FROM plans WHERE id = ?').get(id);
+    if (!plan) {
+      return res.status(404).json({ success: false, error: 'Plan not found' });
+    }
+
+    if (plan.user_id !== user_id && req.user.is_admin !== 1) {
+      return res.status(403).json({ success: false, error: 'Permission denied' });
+    }
+
     db.prepare('DELETE FROM plans WHERE id = ?').run(id);
     res.json({ success: true, message: 'Plan deleted' });
   } catch (err) {

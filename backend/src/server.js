@@ -9,6 +9,7 @@ const { searchUser, sendFriendRequest, acceptFriendRequest, getFriends, getFrien
 const { createPost, getPosts, deletePost } = require('./posts');
 const { sendMessage, getMessages } = require('./messages');
 const { getAllUsers, deleteUser, updateUser, createAdmin } = require('./admin');
+const { authMiddleware, adminMiddleware } = require('./middleware/auth');
 const { getWeather } = require('./weather');
 const { createNestItem, getNestItems, deleteNestItem } = require('./nest');
 const { webSearch } = require('./search');
@@ -85,20 +86,20 @@ const exclusiveMusicUpload = multer({ storage: exclusiveMusicStorage, limits: { 
 
 app.post('/api/register', register);
 app.post('/api/login', login);
-app.post('/api/change_username', changeUsername);
+app.post('/api/change_username', authMiddleware, changeUsername);
 
-app.get('/api/plans', getPlans);
-app.post('/api/plans', addPlan);
-app.delete('/api/plans/:id', deletePlan);
+app.get('/api/plans', authMiddleware, getPlans);
+app.post('/api/plans', authMiddleware, addPlan);
+app.delete('/api/plans/:id', authMiddleware, deletePlan);
 
-app.get('/api/users/search', searchUser);
-app.post('/api/friends/request', sendFriendRequest);
-app.post('/api/friends/accept', acceptFriendRequest);
-app.get('/api/friends', getFriends);
-app.get('/api/friends/requests', getFriendRequests);
-app.delete('/api/friends', deleteFriend);
+app.get('/api/users/search', authMiddleware, searchUser);
+app.post('/api/friends/request', authMiddleware, sendFriendRequest);
+app.post('/api/friends/accept', authMiddleware, acceptFriendRequest);
+app.get('/api/friends', authMiddleware, getFriends);
+app.get('/api/friends/requests', authMiddleware, getFriendRequests);
+app.delete('/api/friends', authMiddleware, deleteFriend);
 
-app.post('/api/upload', upload.single('media'), (req, res) => {
+app.post('/api/upload', authMiddleware, upload.single('media'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ success: false, error: 'No file uploaded' });
   }
@@ -112,16 +113,16 @@ app.post('/api/upload', upload.single('media'), (req, res) => {
   });
 });
 
-app.post('/api/posts', createPost);
-app.get('/api/posts', getPosts);
-app.delete('/api/posts/:id', deletePost);
+app.post('/api/posts', authMiddleware, createPost);
+app.get('/api/posts', authMiddleware, getPosts);
+app.delete('/api/posts/:id', authMiddleware, deletePost);
 
-app.post('/api/messages', sendMessage);
-app.get('/api/messages', getMessages);
+app.post('/api/messages', authMiddleware, sendMessage);
+app.get('/api/messages', authMiddleware, getMessages);
 
-app.get('/api/admin/users', getAllUsers);
-app.delete('/api/admin/users', deleteUser);
-app.put('/api/admin/users', updateUser);
+app.get('/api/admin/users', adminMiddleware, getAllUsers);
+app.delete('/api/admin/users', adminMiddleware, deleteUser);
+app.put('/api/admin/users', adminMiddleware, updateUser);
 app.post('/api/admin/create', createAdmin);
 
 app.get('/api/weather', getWeather);
@@ -132,14 +133,14 @@ app.delete('/api/nest/:id', deleteNestItem);
 
 app.get('/api/search', webSearch);
 
-app.get('/api/music/search', searchMusic);
-app.get('/api/music/recommend', getRecommendations);
-app.get('/api/music/uploaded', getUploadedSongs);
-app.post('/api/music/upload', musicUpload.single('file'), uploadMusic);
-app.delete('/api/music/:id', deleteMusic);
-app.get('/api/music/exclusive', getExclusiveSongs);
-app.post('/api/music/exclusive/upload', exclusiveMusicUpload.single('file'), uploadExclusiveMusic);
-app.delete('/api/music/exclusive/:id', deleteExclusiveMusic);
+app.get('/api/music/search', authMiddleware, searchMusic);
+app.get('/api/music/recommend', authMiddleware, getRecommendations);
+app.get('/api/music/uploaded', authMiddleware, getUploadedSongs);
+app.post('/api/music/upload', authMiddleware, musicUpload.single('file'), uploadMusic);
+app.delete('/api/music/:id', authMiddleware, deleteMusic);
+app.get('/api/music/exclusive', authMiddleware, getExclusiveSongs);
+app.post('/api/music/exclusive/upload', adminMiddleware, exclusiveMusicUpload.single('file'), uploadExclusiveMusic);
+app.delete('/api/music/exclusive/:id', adminMiddleware, deleteExclusiveMusic);
 
 app.get('/api/wardrobe', getWardrobeItems);
 app.post('/api/wardrobe', wardrobeUpload.single('image'), uploadClothes);

@@ -1,6 +1,7 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const { getDb } = require('./db');
 
 const MUSIC_DIR = path.join(__dirname, '../uploads/music');
 const EXCLUSIVE_MUSIC_DIR = path.join(__dirname, '../uploads/exclusive_music');
@@ -12,65 +13,6 @@ if (!fs.existsSync(MUSIC_DIR)) {
 if (!fs.existsSync(EXCLUSIVE_MUSIC_DIR)) {
   fs.mkdirSync(EXCLUSIVE_MUSIC_DIR, { recursive: true });
 }
-
-let uploadedSongs = [];
-let exclusiveSongs = [];
-
-function loadUploadedSongs() {
-  try {
-    const files = fs.readdirSync(MUSIC_DIR);
-    uploadedSongs = files.filter(file => {
-      const ext = path.extname(file).toLowerCase();
-      return ['.mp3', '.wav', '.ogg', '.m4a'].includes(ext);
-    }).map((file, index) => {
-      const ext = path.extname(file).toLowerCase();
-      const name = path.basename(file, ext);
-      return {
-        id: 1000 + index,
-        title: name.replace(/_/g, ' ') || '未知歌曲',
-        artist: '本地音乐',
-        album: '我的音乐',
-        duration: '--:--',
-        cover: `https://neeko-copilot.bytedance.net/api/text_to_image?prompt=music%20album%20cover%20art&image_size=square`,
-        url: `/uploads/music/${encodeURIComponent(file)}`,
-        local: true
-      };
-    });
-  } catch (error) {
-    console.error('加载上传的音乐失败:', error);
-    uploadedSongs = [];
-  }
-}
-
-function loadExclusiveSongs() {
-  try {
-    const files = fs.readdirSync(EXCLUSIVE_MUSIC_DIR);
-    exclusiveSongs = files.filter(file => {
-      const ext = path.extname(file).toLowerCase();
-      return ['.mp3', '.wav', '.ogg', '.m4a'].includes(ext);
-    }).map((file, index) => {
-      const ext = path.extname(file).toLowerCase();
-      const name = path.basename(file, ext);
-      return {
-        id: 2000 + index,
-        title: name.replace(/_/g, ' ') || '未知歌曲',
-        artist: '专属音乐',
-        album: '专属歌单',
-        duration: '--:--',
-        cover: `https://neeko-copilot.bytedance.net/api/text_to_image?prompt=exclusive%20music%20album%20cover%20golden%20premium&image_size=square`,
-        url: `/uploads/exclusive_music/${encodeURIComponent(file)}`,
-        local: true,
-        exclusive: true
-      };
-    });
-  } catch (error) {
-    console.error('加载专属音乐失败:', error);
-    exclusiveSongs = [];
-  }
-}
-
-loadUploadedSongs();
-loadExclusiveSongs();
 
 function generateMockSongs(keyword = '') {
   const songs = [
@@ -188,11 +130,29 @@ function generateMockSongs(keyword = '') {
 
 async function searchMusic(req, res) {
   const { keyword } = req.query;
+  const user = req.user;
   
   const mockSongs = generateMockSongs(keyword);
-  loadUploadedSongs();
   
-  let allSongs = [...uploadedSongs];
+  let userSongs = [];
+  try {
+    const db = getDb();
+    const rows = db.prepare('SELECT * FROM music WHERE user_id = ? AND is_exclusive = 0').all(user.id);
+    userSongs = rows.map(row => ({
+      id: row.id,
+      title: row.title,
+      artist: row.artist,
+      album: row.album,
+      duration: '--:--',
+      cover: `https://neeko-copilot.bytedance.net/api/text_to_image?prompt=music%20album%20cover%20art&image_size=square`,
+      url: row.url,
+      local: true
+    }));
+  } catch (error) {
+    console.error('搜索用户音乐失败:', error);
+  }
+  
+  let allSongs = [...userSongs];
   
   if (!keyword) {
     allSongs = [...allSongs, ...mockSongs];
@@ -202,11 +162,11 @@ async function searchMusic(req, res) {
       song.title.toLowerCase().includes(lowerKeyword) ||
       song.artist.toLowerCase().includes(lowerKeyword)
     );
-    const filteredUploaded = uploadedSongs.filter(song =>
+    const filteredUser = userSongs.filter(song =>
       song.title.toLowerCase().includes(lowerKeyword) ||
       song.artist.toLowerCase().includes(lowerKeyword)
     );
-    allSongs = [...filteredUploaded, ...filteredMock];
+    allSongs = [...filteredUser, ...filteredMock];
   }
   
   res.json({
@@ -219,9 +179,27 @@ async function searchMusic(req, res) {
 }
 
 async function getRecommendations(req, res) {
-  loadUploadedSongs();
+  const user = req.user;
+  let userSongs = [];
+  try {
+    const db = getDb();
+    const rows = db.prepare('SELECT * FROM music WHERE user_id = ? AND is_exclusive = 0 LIMIT 10').all(user.id);
+    userSongs = rows.map(row => ({
+      id: row.id,
+      title: row.title,
+      artist: row.artist,
+      album: row.album,
+      duration: '--:--',
+      cover: `https://neeko-copilot.bytedance.net/api/text_to_image?prompt=music%20album%20cover%20art&image_size=square`,
+      url: row.url,
+      local: true
+    }));
+  } catch (error) {
+    console.error('获取推荐音乐失败:', error);
+  }
+
   const mockSongs = generateMockSongs().slice(0, 6);
-  const allSongs = [...uploadedSongs, ...mockSongs];
+  const allSongs = [...userSongs, ...mockSongs];
   
   res.json({
     success: true,
@@ -236,6 +214,7 @@ async function uploadMusic(req, res) {
       return res.status(400).json({ success: false, error: '请选择要上传的音乐文件' });
     }
 
+    const user = req.user;
     const file = req.file;
     const ext = path.extname(file.originalname).toLowerCase();
     
@@ -255,15 +234,18 @@ async function uploadMusic(req, res) {
     }
 
     const fileName = file.filename;
-    const filePath = path.join(MUSIC_DIR, fileName);
+    const title = path.basename(file.originalname, ext).replace(/_/g, ' ');
+    const url = `/uploads/music/${encodeURIComponent(fileName)}`;
     
-    loadUploadedSongs();
+    const db = getDb();
+    const stmt = db.prepare('INSERT INTO music (user_id, title, artist, album, url, filename, is_exclusive) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    stmt.run(user.id, title, '本地音乐', '我的音乐', url, fileName, 0);
     
     res.json({
       success: true,
       message: '音乐上传成功',
       fileName: fileName,
-      url: `/uploads/music/${encodeURIComponent(fileName)}`
+      url: url
     });
   } catch (error) {
     console.error('上传音乐失败:', error);
@@ -273,23 +255,28 @@ async function uploadMusic(req, res) {
 
 async function deleteMusic(req, res) {
   const { id } = req.params;
+  const user = req.user;
   
   try {
-    loadUploadedSongs();
-    const song = uploadedSongs.find(s => s.id === parseInt(id));
+    const db = getDb();
+    const song = db.prepare('SELECT * FROM music WHERE id = ?').get(id);
     
     if (!song) {
       return res.status(404).json({ success: false, error: '未找到该音乐' });
     }
 
-    const fileName = decodeURIComponent(song.url.replace('/uploads/music/', ''));
-    const filePath = path.join(MUSIC_DIR, fileName);
+    if (song.user_id !== user.id && user.is_admin !== 1) {
+      return res.status(403).json({ success: false, error: '无权删除该音乐' });
+    }
+
+    const fileName = path.basename(song.filename);
+    const filePath = path.join(song.is_exclusive ? EXCLUSIVE_MUSIC_DIR : MUSIC_DIR, fileName);
     
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
     
-    loadUploadedSongs();
+    db.prepare('DELETE FROM music WHERE id = ?').run(id);
     
     res.json({ success: true, message: '删除成功' });
   } catch (error) {
@@ -299,29 +286,64 @@ async function deleteMusic(req, res) {
 }
 
 async function getUploadedSongs(req, res) {
-  loadUploadedSongs();
-  res.json({
-    success: true,
-    songs: uploadedSongs,
-    total: uploadedSongs.length
-  });
+  const user = req.user;
+  try {
+    const db = getDb();
+    const songs = db.prepare('SELECT * FROM music WHERE user_id = ? AND is_exclusive = 0').all(user.id);
+    
+    const formattedSongs = songs.map(song => ({
+      id: song.id,
+      title: song.title,
+      artist: song.artist,
+      album: song.album,
+      duration: '--:--',
+      cover: `https://neeko-copilot.bytedance.net/api/text_to_image?prompt=music%20album%20cover%20art&image_size=square`,
+      url: song.url,
+      local: true
+    }));
+
+    res.json({
+      success: true,
+      songs: formattedSongs,
+      total: formattedSongs.length
+    });
+  } catch (error) {
+    console.error('获取上传音乐失败:', error);
+    res.status(500).json({ success: false, error: '获取失败' });
+  }
 }
 
 async function getExclusiveSongs(req, res) {
-  loadExclusiveSongs();
-  res.json({
-    success: true,
-    songs: exclusiveSongs,
-    total: exclusiveSongs.length
-  });
+  try {
+    const db = getDb();
+    const songs = db.prepare('SELECT * FROM music WHERE is_exclusive = 1').all();
+    
+    const formattedSongs = songs.map(song => ({
+      id: song.id,
+      title: song.title,
+      artist: '专属音乐',
+      album: '专属歌单',
+      duration: '--:--',
+      cover: `https://neeko-copilot.bytedance.net/api/text_to_image?prompt=exclusive%20music%20album%20cover%20golden%20premium&image_size=square`,
+      url: song.url,
+      local: true,
+      exclusive: true
+    }));
+
+    res.json({
+      success: true,
+      songs: formattedSongs,
+      total: formattedSongs.length
+    });
+  } catch (error) {
+    console.error('获取专属音乐失败:', error);
+    res.status(500).json({ success: false, error: '获取失败' });
+  }
 }
 
 async function uploadExclusiveMusic(req, res) {
   try {
-    const { user } = req.body;
-    if (!user || !user.is_admin) {
-      return res.status(403).json({ success: false, error: '只有管理员可以上传专属音乐' });
-    }
+    const user = req.user;
 
     if (!req.file) {
       return res.status(400).json({ success: false, error: '请选择要上传的音乐文件' });
@@ -331,30 +353,24 @@ async function uploadExclusiveMusic(req, res) {
     const ext = path.extname(file.originalname).toLowerCase();
     
     const supportedFormats = ['.mp3', '.wav', '.ogg', '.m4a', '.flac', '.aac', '.wma', '.ape'];
-    const encryptedFormats = ['.kgg', '.kgm', '.vpr'];
-    
-    if (encryptedFormats.includes(ext)) {
-      return res.status(400).json({ 
-        success: false, 
-        error: `${ext.toUpperCase()} 是加密格式，无法直接播放。请先转换为 MP3 等标准格式后再上传。`,
-        note: '提示：可以使用格式转换工具将加密音乐转换为 MP3 格式'
-      });
-    }
     
     if (!supportedFormats.includes(ext)) {
       return res.status(400).json({ success: false, error: `不支持的文件格式。支持的格式：${supportedFormats.join(', ')}` });
     }
 
     const fileName = file.filename;
-    const filePath = path.join(EXCLUSIVE_MUSIC_DIR, fileName);
+    const title = path.basename(file.originalname, ext).replace(/_/g, ' ');
+    const url = `/uploads/exclusive_music/${encodeURIComponent(fileName)}`;
     
-    loadExclusiveSongs();
+    const db = getDb();
+    const stmt = db.prepare('INSERT INTO music (user_id, title, artist, album, url, filename, is_exclusive) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    stmt.run(user.id, title, '专属音乐', '专属歌单', url, fileName, 1);
     
     res.json({
       success: true,
       message: '专属音乐上传成功',
       fileName: fileName,
-      url: `/uploads/exclusive_music/${encodeURIComponent(fileName)}`
+      url: url
     });
   } catch (error) {
     console.error('上传专属音乐失败:', error);
@@ -363,29 +379,25 @@ async function uploadExclusiveMusic(req, res) {
 }
 
 async function deleteExclusiveMusic(req, res) {
-  const { user } = req.body;
-  if (!user || !user.is_admin) {
-    return res.status(403).json({ success: false, error: '只有管理员可以删除专属音乐' });
-  }
-
   const { id } = req.params;
+  const user = req.user;
   
   try {
-    loadExclusiveSongs();
-    const song = exclusiveSongs.find(s => s.id === parseInt(id));
+    const db = getDb();
+    const song = db.prepare('SELECT * FROM music WHERE id = ? AND is_exclusive = 1').get(id);
     
     if (!song) {
       return res.status(404).json({ success: false, error: '未找到该音乐' });
     }
 
-    const fileName = decodeURIComponent(song.url.replace('/uploads/exclusive_music/', ''));
+    const fileName = path.basename(song.filename);
     const filePath = path.join(EXCLUSIVE_MUSIC_DIR, fileName);
     
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
     
-    loadExclusiveSongs();
+    db.prepare('DELETE FROM music WHERE id = ?').run(id);
     
     res.json({ success: true, message: '删除成功' });
   } catch (error) {

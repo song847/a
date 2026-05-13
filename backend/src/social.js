@@ -13,7 +13,13 @@ function searchUser(req, res) {
 }
 
 function sendFriendRequest(req, res) {
-  const { user_id, friend_id } = req.body;
+  const { friend_id } = req.body;
+  const user_id = req.user.id;
+
+  if (user_id == friend_id) {
+    return res.status(400).json({ success: false, error: '不能给自己发送好友申请' });
+  }
+
   const db = getDb();
   try {
     db.prepare(
@@ -29,15 +35,22 @@ function sendFriendRequest(req, res) {
 }
 
 function acceptFriendRequest(req, res) {
-  const { user_id, friend_id } = req.body;
+  const { requester_id } = req.body;
+  const user_id = req.user.id;
+
   const db = getDb();
   try {
-    db.prepare(
+    const info = db.prepare(
       'UPDATE friends SET status = ? WHERE user_id = ? AND friend_id = ?'
-    ).run('accepted', user_id, friend_id);
+    ).run('accepted', requester_id, user_id);
+
+    if (info.changes === 0) {
+      return res.status(404).json({ success: false, error: '未找到该好友申请' });
+    }
+
     db.prepare(
       'INSERT OR IGNORE INTO friends (user_id, friend_id, status) VALUES (?, ?, ?)'
-    ).run(friend_id, user_id, 'accepted');
+    ).run(user_id, requester_id, 'accepted');
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -45,7 +58,7 @@ function acceptFriendRequest(req, res) {
 }
 
 function getFriends(req, res) {
-  const { user_id } = req.query;
+  const user_id = req.user.id;
   const db = getDb();
   try {
     const rows = db.prepare(`
@@ -61,7 +74,7 @@ function getFriends(req, res) {
 }
 
 function getFriendRequests(req, res) {
-  const { user_id } = req.query;
+  const user_id = req.user.id;
   const db = getDb();
   try {
     const rows = db.prepare(`
@@ -77,7 +90,9 @@ function getFriendRequests(req, res) {
 }
 
 function deleteFriend(req, res) {
-  const { user_id, friend_id } = req.body;
+  const { friend_id } = req.body;
+  const user_id = req.user.id;
+
   const db = getDb();
   try {
     db.prepare('DELETE FROM friends WHERE user_id = ? AND friend_id = ?').run(user_id, friend_id);

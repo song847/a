@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
+import './components/Auth/Auth.css';
+import './components/Social/Social.css';
+import './components/Search/Search.css';
+import './components/Weather/Weather.css';
+import './components/Nest/Nest.css';
+import './components/Wardrobe/Wardrobe.css';
+import './components/Music/Music.css';
 import GameZone from './components/GameZone';
 import './components/GameZone.css';
+import AuthContainer from './components/Auth/AuthContainer';
+import Header from './components/Layout/Header';
 
 const BASE_URL = '';
 
@@ -19,12 +28,7 @@ function App() {
     localStorage.removeItem('user');
   }
   
-  const [isLoginView, setIsLoginView] = useState(!hasSavedUser);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [uniqueId, setUniqueId] = useState('');
   const [user, setUser] = useState<any>(initialUser);
-  const [regResult, setRegResult] = useState<any>(null);
   const [showChangeUsernameModal, setShowChangeUsernameModal] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [showGreetingModal, setShowGreetingModal] = useState(false);
@@ -33,146 +37,17 @@ function App() {
   const [dashboardScale, setDashboardScale] = useState(hasSavedUser ? 1 : 0.95);
   const [blurAmount, setBlurAmount] = useState(0);
   
-  // Animation States
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [loginPhase, setLoginPhase] = useState(0);
-  const [showParticles, setShowParticles] = useState(false);
-  const [particles, setParticles] = useState<any[]>([]);
-  const [showCracks, setShowCracks] = useState(false);
-  const [cracks, setCracks] = useState<any[]>([]);
-  const [showEnergyCore, setShowEnergyCore] = useState(false);
-  const [showNewBackground, setShowNewBackground] = useState(false);
-  const [showCurtain, setShowCurtain] = useState(false);
-  const [curtainOpen, setCurtainOpen] = useState(false);
-  const [showRipple, setShowRipple] = useState(false);
-  const [showMask, setShowMask] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
-  
-  const generateParticles = () => {
-    const newParticles = [];
-    const colors = ['particle-cyan', 'particle-purple', 'particle-pink'];
-    for (let i = 0; i < 80; i++) {
-      const colorClass = colors[Math.floor(Math.random() * colors.length)];
-      const angle = (Math.PI * 2 * i) / 80 + Math.random() * 0.5;
-      const distance = 100 + Math.random() * 350;
-      newParticles.push({
-        id: i,
-        tx: Math.cos(angle) * distance,
-        ty: Math.sin(angle) * distance,
-        size: Math.random() * 10 + 4,
-        delay: Math.random() * 0.3,
-        duration: Math.random() * 1 + 1.5,
-        color: colorClass
-      });
+
+  const handleLogout = () => {
+    if (confirm('确定要退出登录吗？')) {
+      setUser(null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setDashboardOpacity(0);
+      setDashboardScale(0.95);
+      setBlurAmount(0);
     }
-    setParticles(newParticles);
-  };
-  
-  const generateCracks = () => {
-    const newCracks: { id: number; angle: number; delay: number }[] = [];
-    const angles = [0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5, 180, 202.5, 225, 247.5, 270, 292.5, 315, 337.5];
-    angles.forEach((angle, index) => {
-      newCracks.push({
-        id: index,
-        angle: angle + Math.random() * 5,
-        delay: index * 0.03
-      });
-    });
-    setCracks(newCracks);
-  };
-  
-  const handleToggleAuth = () => {
-    if (isTransitioning) return;
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setIsLoginView(!isLoginView);
-      setTimeout(() => {
-        setIsTransitioning(false);
-      }, 600);
-    }, 200);
-  };
-  
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const response = await fetch(`${BASE_URL}/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ unique_id: uniqueId, password }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        triggerLoginTransition();
-        setTimeout(() => {
-          setUser(data.user);
-        }, 3500);
-      } else {
-        alert(data.error || '登录失败');
-      }
-    } catch (err) {
-      alert('无法连接到后端服务器');
-    }
-  };
-  
-  const triggerLoginTransition = () => {
-    // Phase 1 (0~1000ms): Button Energy Accumulation
-    setShowRipple(true);
-    setShowMask(true);
-    setLoginPhase(1);
-    
-    setTimeout(() => {
-      // Phase 2 (1000~1400ms): New Background Appears
-      setShowNewBackground(true);
-      setShowEnergyCore(true);
-      setLoginPhase(2);
-      
-      setTimeout(() => {
-        // Phase 3 (1400~2600ms): Particle Burst (1200ms)
-        generateParticles();
-        generateCracks();
-        setShowParticles(true);
-        setShowCracks(true);
-        setLoginPhase(3);
-        
-        setTimeout(() => {
-          // Phase 4 (2600~3000ms): Switch to Curtain (400ms)
-          setShowParticles(false);
-          setShowCracks(false);
-          setShowEnergyCore(false);
-          setShowCurtain(true);
-          setLoginPhase(4);
-          
-          setTimeout(() => {
-            // Phase 5 (3000~3700ms): Curtain Opens (700ms)
-            setCurtainOpen(true);
-            
-            setTimeout(() => {
-              // Phase 6 (3700~4000ms): Dashboard Lands (300ms)
-              setDashboardOpacity(1);
-              setDashboardScale(1);
-              setBlurAmount(0);
-              setLoginPhase(5);
-              
-              setTimeout(() => {
-                // Cleanup
-                setShowCurtain(false);
-                setShowNewBackground(false);
-                setShowRipple(false);
-                setShowMask(false);
-                setCurtainOpen(false);
-                setParticles([]);
-                setCracks([]);
-                setLoginPhase(0);
-                
-                setTimeout(() => {
-                  setShowWelcomeModal(true);
-                }, 800);
-              }, 600);
-            }, 700);
-          }, 400);
-        }, 1200);
-      }, 400);
-    }, 1000);
   };
 
   // Time & Date State
@@ -189,22 +64,17 @@ function App() {
   const [searchResult, setSearchResult] = useState<any>(null);
   const [friends, setFriends] = useState<any[]>([]);
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
+  const [socialTab, setSocialTab] = useState<'chat' | 'circle'>('chat');
 
   // Expand/Collapse State
   const [showTimeline, setShowTimeline] = useState(true);
   const [showSocial, setShowSocial] = useState(true);
-  const [showCircle, setShowCircle] = useState(false);
-  const [showAimTrainer, setShowAimTrainer] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showGameZone, setShowGameZone] = useState(false);
 
   // Admin State
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [adminLoading, setAdminLoading] = useState(false);
-
-  // Background Photo State
-  const [backgroundPhoto, setBackgroundPhoto] = useState<string | null>(null);
-  const [photoInputRef] = useState<HTMLInputElement>(document.createElement('input'));
 
   // Preview Modal State
   const [previewMedia, setPreviewMedia] = useState<{ url: string; type: string } | null>(null);
@@ -213,7 +83,7 @@ function App() {
   const [weather, setWeather] = useState<any>(null);
   const [showWeatherPanel, setShowWeatherPanel] = useState(false);
 
-  // Circle (Life Circle) State
+  // Life Circle (Posts) State
   const [posts, setPosts] = useState<any[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -233,38 +103,6 @@ function App() {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  // Aim Trainer State
-  const [gameActive, setGameActive] = useState(false);
-  const [targets, setTargets] = useState<any[]>([]);
-  const [score, setScore] = useState(0);
-  const [shotsFired, setShotsFired] = useState(0);
-  const [hits, setHits] = useState(0);
-  const [timeElapsed, setTimeElapsed] = useState(0);
-  const [gameStartTime, setGameStartTime] = useState<number | null>(null);
-  const [combo, setCombo] = useState(0);
-  const [maxCombo, setMaxCombo] = useState(0);
-  
-  // Reaction Test Game State
-  const [showReactionTest, setShowReactionTest] = useState(false);
-  const [reactionGameActive, setReactionGameActive] = useState(false);
-  const [reactionState, setReactionState] = useState<'waiting' | 'ready' | 'result'>('waiting');
-  const [reactionTime, setReactionTime] = useState(0);
-  const [bestReactionTime, setBestReactionTime] = useState(0);
-  const [reactionStartTime, setReactionStartTime] = useState<number | null>(null);
-  
-  // Find Difference Game State
-  const [showFindDifference, setShowFindDifference] = useState(false);
-  const [differenceGameActive, setDifferenceGameActive] = useState(false);
-  const [differenceScore, setDifferenceScore] = useState(0);
-  const [differencesFound, setDifferencesFound] = useState(0);
-  const [totalDifferences, setTotalDifferences] = useState(5);
-  const [differenceItems, setDifferenceItems] = useState<any[]>([]);
-  const [differenceLevel, setDifferenceLevel] = useState(1);
-  const [differenceTime, setDifferenceTime] = useState(0);
-  const [differenceStartTime, setDifferenceStartTime] = useState<number | null>(null);
-  const [differenceImages, setDifferenceImages] = useState<{ left: string; right: string } | null>(null);
-  const [hintsRemaining, setHintsRemaining] = useState(3);
   
   // Search State
   const [showSearch, setShowSearch] = useState(false);
@@ -304,8 +142,9 @@ function App() {
   const [petHunger, setPetHunger] = useState(60); // 0-100
   const [petEnergy, setPetEnergy] = useState(80); // 0-100
   const [petAction, setPetAction] = useState('idle'); // idle, roll, sleep, peek, walk
-  const [petPosition, setPetPosition] = useState({ x: 20, y: 20 });
+  const [petPosition, setPetPosition] = useState({ x: window.innerWidth - 120, y: window.innerHeight - 180 });
   const [petDragging, setPetDragging] = useState(false);
+  const [petDragOffset, setPetDragOffset] = useState({ x: 0, y: 0 });
   const [petLongPressTimer, setPetLongPressTimer] = useState<number | null>(null);
   const [petBubble, setPetBubble] = useState('');
   const [petInteraction, setPetInteraction] = useState(''); // touched, fed, patted
@@ -334,12 +173,9 @@ function App() {
   useEffect(() => {
     const timer = setInterval(() => {
       setTime(new Date());
-      if (gameStartTime && gameActive) {
-        setTimeElapsed(Math.floor((Date.now() - gameStartTime) / 1000));
-      }
     }, 100);
     return () => clearInterval(timer);
-  }, [gameStartTime, gameActive]);
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -650,20 +486,20 @@ function App() {
 
   const handlePetDragStart = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
+    const clientX = 'touches' in e ? e.touches[0]?.clientX || 0 : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0]?.clientY || 0 : e.clientY;
+    
+    setPetDragOffset({
+      x: clientX - petPosition.x,
+      y: clientY - petPosition.y
+    });
+    
     setPetDragging(true);
     showPetBubble('喵~ 带我去哪里呀~');
   };
 
   const handlePetDragEnd = (e: React.MouseEvent | React.TouchEvent) => {
     if (!petDragging) return;
-    const clientX = 'touches' in e ? e.changedTouches[0]?.clientX || 0 : e.clientX;
-    const clientY = 'touches' in e ? e.changedTouches[0]?.clientY || 0 : e.clientY;
-    const maxX = window.innerWidth - 80;
-    const maxY = window.innerHeight - 100;
-    setPetPosition({
-      x: Math.max(0, Math.min(maxX, clientX - 40)),
-      y: Math.max(0, Math.min(maxY, clientY - 50))
-    });
     setPetDragging(false);
   };
 
@@ -671,11 +507,13 @@ function App() {
     if (!petDragging) return;
     const clientX = 'touches' in e ? e.touches[0]?.clientX || 0 : e.clientX;
     const clientY = 'touches' in e ? e.touches[0]?.clientY || 0 : e.clientY;
-    const maxX = window.innerWidth - 80;
-    const maxY = window.innerHeight - 100;
+    
+    const maxX = window.innerWidth - 100;
+    const maxY = window.innerHeight - 120;
+    
     setPetPosition({
-      x: Math.max(0, Math.min(maxX, clientX - 40)),
-      y: Math.max(0, Math.min(maxY, clientY - 50))
+      x: Math.max(0, Math.min(maxX, clientX - petDragOffset.x)),
+      y: Math.max(0, Math.min(maxY, clientY - petDragOffset.y))
     });
   };
 
@@ -923,18 +761,6 @@ function App() {
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const response = await fetch(`${BASE_URL}/api/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-    const data = await response.json();
-    if (data.success) setRegResult(data);
-    else alert(data.error);
-  };
-
   const changeUsername = async () => {
     if (!newUsername.trim()) {
       alert('请输入新用户名');
@@ -1041,56 +867,6 @@ function App() {
     }
   };
 
-  const handleSelectBackgroundPhoto = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setBackgroundPhoto(event.target?.result as string);
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-    input.click();
-  };
-
-  const removeBackgroundPhoto = () => {
-    setBackgroundPhoto(null);
-  };
-
-  const generateTarget = () => {
-    const size = Math.random() * 30 + 20;
-    return {
-      id: Date.now() + Math.random(),
-      x: Math.random() * (800 - size),
-      y: Math.random() * (500 - size),
-      size,
-      color: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4'][Math.floor(Math.random() * 5)],
-      createdAt: Date.now()
-    };
-  };
-
-  const startAimGame = () => {
-    setScore(0);
-    setShotsFired(0);
-    setHits(0);
-    setTimeElapsed(0);
-    setCombo(0);
-    setMaxCombo(0);
-    setGameStartTime(Date.now());
-    setTargets([generateTarget(), generateTarget(), generateTarget()]);
-    setGameActive(true);
-  };
-
-  const stopAimGame = () => {
-    setGameActive(false);
-    setTargets([]);
-    setGameStartTime(null);
-  };
 
   const fetchAllUsers = async () => {
     setAdminLoading(true);
@@ -1135,275 +911,6 @@ function App() {
     } else {
       alert(data.error);
     }
-  };
-
-  const handleTargetClick = (targetId: number, event: React.MouseEvent) => {
-    event.stopPropagation();
-    const target = targets.find(t => t.id === targetId);
-    if (!target) return;
-
-    setShotsFired(prev => prev + 1);
-    setHits(prev => prev + 1);
-    
-    const reactionTime = Date.now() - target.createdAt;
-    const sizeBonus = Math.max(100 - target.size, 10);
-    const timeBonus = Math.max(1000 - reactionTime, 10);
-    const comboBonus = combo * 5;
-    const points = Math.round((sizeBonus + timeBonus + comboBonus) / 10);
-    
-    setScore(prev => prev + points);
-    setCombo(prev => {
-      const newCombo = prev + 1;
-      setMaxCombo(max => Math.max(max, newCombo));
-      return newCombo;
-    });
-
-    setTargets(prev => {
-      let newTargets = prev.filter(t => t.id !== targetId);
-      while (newTargets.length < 5 && gameActive) {
-        newTargets.push(generateTarget());
-      }
-      return newTargets;
-    });
-  };
-
-  const handleMissClick = () => {
-    setShotsFired(prev => prev + 1);
-    setCombo(0);
-  };
-
-  // Reaction Test Game Functions
-  const startReactionGame = () => {
-    setReactionState('waiting');
-    setReactionTime(0);
-    setReactionGameActive(true);
-    
-    const randomDelay = 500 + Math.random() * 1500;
-    setTimeout(() => {
-      setReactionState(prev => {
-        if (prev === 'waiting') {
-          setReactionStartTime(Date.now());
-          return 'ready';
-        }
-        return prev;
-      });
-    }, randomDelay);
-  };
-
-  const handleReactionClick = () => {
-    if (reactionState === 'waiting') {
-      setReactionState('result');
-      setReactionTime(-1);
-      setTimeout(() => {
-        startReactionGame();
-      }, 1500);
-    } else if (reactionState === 'ready') {
-      const time = Date.now() - (reactionStartTime || Date.now());
-      setReactionTime(time);
-      setReactionState('result');
-      if (time < bestReactionTime || bestReactionTime === 0) {
-        setBestReactionTime(time);
-      }
-      setTimeout(() => {
-        startReactionGame();
-      }, 2000);
-    }
-  };
-
-  const stopReactionGame = () => {
-    setReactionGameActive(false);
-    setReactionState('waiting');
-    setReactionTime(0);
-    setReactionStartTime(null);
-  };
-
-  const generateDifferenceLevel = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 400;
-    canvas.height = 300;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-
-    ctx.fillStyle = '#f0f0f0';
-    ctx.fillRect(0, 0, 400, 300);
-
-    const shapes = ['circle', 'square', 'triangle', 'star'];
-    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
-    const differences: any[] = [];
-
-    for (let i = 0; i < 15; i++) {
-      const shape = shapes[Math.floor(Math.random() * shapes.length)];
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      const x = Math.random() * 360 + 20;
-      const y = Math.random() * 260 + 20;
-      const size = Math.random() * 30 + 15;
-
-      ctx.fillStyle = color;
-      ctx.beginPath();
-
-      if (shape === 'circle') {
-        ctx.arc(x, y, size, 0, Math.PI * 2);
-      } else if (shape === 'square') {
-        ctx.fillRect(x - size, y - size, size * 2, size * 2);
-      } else if (shape === 'triangle') {
-        ctx.moveTo(x, y - size);
-        ctx.lineTo(x + size, y + size);
-        ctx.lineTo(x - size, y + size);
-        ctx.closePath();
-      } else if (shape === 'star') {
-        for (let j = 0; j < 5; j++) {
-          const angle = (j * 4 * Math.PI) / 5 - Math.PI / 2;
-          const px = x + Math.cos(angle) * size;
-          const py = y + Math.sin(angle) * size;
-          if (j === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
-        }
-        ctx.closePath();
-      }
-
-      ctx.fill();
-    }
-
-    const leftImage = canvas.toDataURL();
-
-    for (let i = 0; i < totalDifferences; i++) {
-      const shape = shapes[Math.floor(Math.random() * shapes.length)];
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      const x = Math.random() * 360 + 20;
-      const y = Math.random() * 260 + 20;
-      const size = Math.random() * 25 + 10;
-
-      differences.push({ id: i, x, y, size, shape, color, found: false });
-
-      ctx.fillStyle = color;
-      ctx.beginPath();
-
-      if (shape === 'circle') {
-        ctx.arc(x, y, size, 0, Math.PI * 2);
-      } else if (shape === 'square') {
-        ctx.fillRect(x - size, y - size, size * 2, size * 2);
-      } else if (shape === 'triangle') {
-        ctx.moveTo(x, y - size);
-        ctx.lineTo(x + size, y + size);
-        ctx.lineTo(x - size, y + size);
-        ctx.closePath();
-      } else if (shape === 'star') {
-        for (let j = 0; j < 5; j++) {
-          const angle = (j * 4 * Math.PI) / 5 - Math.PI / 2;
-          const px = x + Math.cos(angle) * size;
-          const py = y + Math.sin(angle) * size;
-          if (j === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
-        }
-        ctx.closePath();
-      }
-
-      ctx.fill();
-    }
-
-    const rightImage = canvas.toDataURL();
-
-    return { left: leftImage, right: rightImage, differences };
-  };
-
-  const startDifferenceGame = () => {
-    const levelData = generateDifferenceLevel();
-    if (!levelData) return;
-
-    setDifferenceImages({ left: levelData.left, right: levelData.right });
-    setDifferenceItems(levelData.differences);
-    setDifferenceScore(0);
-    setDifferencesFound(0);
-    setDifferenceTime(0);
-    setDifferenceStartTime(Date.now());
-    setDifferenceGameActive(true);
-  };
-
-  const stopDifferenceGame = () => {
-    setDifferenceGameActive(false);
-    setDifferenceImages(null);
-    setDifferenceItems([]);
-    setDifferenceStartTime(null);
-  };
-
-  const handleDifferenceClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!differenceGameActive) return;
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    const clickedDifference = differenceItems.find(item => {
-      const distance = Math.sqrt(Math.pow(x - item.x, 2) + Math.pow(y - item.y, 2));
-      return distance < item.size + 20 && !item.found;
-    });
-
-    if (clickedDifference) {
-      setDifferenceItems(prev => prev.map(item => 
-        item.id === clickedDifference.id ? { ...item, found: true } : item
-      ));
-      setDifferencesFound(prev => prev + 1);
-      setDifferenceScore(prev => prev + 100);
-    }
-  };
-
-  useEffect(() => {
-    if (differenceGameActive && differencesFound >= totalDifferences) {
-      setDifferenceGameActive(false);
-      alert(`恭喜！您找到了所有${totalDifferences}处不同！用时：${differenceTime}秒，得分：${differenceScore}`);
-    }
-  }, [differencesFound, differenceGameActive, totalDifferences, differenceTime, differenceScore]);
-
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | undefined;
-    if (differenceGameActive && differenceStartTime) {
-      interval = setInterval(() => {
-        setDifferenceTime(Math.floor((Date.now() - differenceStartTime) / 1000));
-      }, 1000);
-    }
-    return () => { if (interval) clearInterval(interval); };
-  }, [differenceGameActive, differenceStartTime]);
-
-  // Pet Effects
-  useEffect(() => {
-    const actionInterval = setInterval(() => {
-      triggerPetAction();
-    }, 4000);
-    return () => clearInterval(actionInterval);
-  }, []);
-
-  useEffect(() => {
-    const statusInterval = setInterval(() => {
-      setPetMood(prev => Math.max(0, prev - 0.5));
-      setPetHunger(prev => Math.max(0, prev - 0.3));
-      setPetEnergy(prev => Math.min(100, prev + 0.2));
-    }, 3000);
-    return () => clearInterval(statusInterval);
-  }, []);
-
-  useEffect(() => {
-    const handleMouseMove = () => {
-      setPetEnergy(prev => Math.min(100, prev + 0.1));
-      setPetMood(prev => Math.min(100, prev + 0.05));
-    };
-    
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
-  const useHint = () => {
-    if (hintsRemaining <= 0) return;
-    const unfoundDifferences = differenceItems.filter(item => !item.found);
-    if (unfoundDifferences.length === 0) return;
-    
-    const randomIndex = Math.floor(Math.random() * unfoundDifferences.length);
-    const hintItem = unfoundDifferences[randomIndex];
-    
-    setDifferenceItems(prev => prev.map(item => 
-      item.id === hintItem.id ? { ...item, hinted: true } : item
-    ));
-    setHintsRemaining(prev => prev - 1);
-    setDifferenceScore(prev => Math.max(0, prev - 50));
   };
 
   const handleSearchUser = async () => {
@@ -1695,136 +1202,37 @@ function App() {
   if (user) {
     return (
       <div className={`dashboard ${dashboardOpacity === 1 ? 'visible' : ''}`}>
-        <header className="dash-header">
-          <div className="user-info">
-            <span className="id-tag">ID: {user.unique_id}</span>
-            <span className="welcome">欢迎，<b>{user.username}</b></span>
-            <button 
-              className="change-username-btn"
-              onClick={() => setShowChangeUsernameModal(true)}
-              title="修改用户名"
-            >
-              ✏️ 修改昵称
-            </button>
-          </div>
-          
-          <div className="section-toggle">
-            <button 
-              className={`toggle-btn ${showTimeline ? 'active' : ''}`}
-              onClick={() => { setShowTimeline(!showTimeline); setShowSocial(false); setShowCircle(false); setShowFindDifference(false); }}
-            >
-              <span className="toggle-icon">📅</span>
-              日程 {showTimeline ? '▼' : '▶'}
-            </button>
-            <button 
-              className={`toggle-btn ${showSocial ? 'active' : ''}`}
-              onClick={() => { setShowSocial(!showSocial); setShowTimeline(false); setShowCircle(false); setShowFindDifference(false); }}
-            >
-              <span className="toggle-icon">👥</span>
-              社交 {showSocial ? '▼' : '▶'}
-            </button>
-            <button 
-              className={`toggle-btn ${showCircle ? 'active' : ''}`}
-              onClick={() => { setShowCircle(!showCircle); setShowTimeline(false); setShowSocial(false); setShowAimTrainer(false); setShowFindDifference(false); }}
-            >
-              <span className="toggle-icon">📸</span>
-              生活圈 {showCircle ? '▼' : '▶'}
-            </button>
-            <button 
-              className={`toggle-btn game-zone-btn ${showGameZone ? 'active' : ''}`}
-              onClick={() => { setShowGameZone(!showGameZone); setShowTimeline(false); setShowSocial(false); setShowCircle(false); setShowAdminPanel(false); setShowAimTrainer(false); setShowFindDifference(false); setShowReactionTest(false); }}
-            >
-              <span className="toggle-icon">🎮</span>
-              游戏中心 {showGameZone ? '▼' : '▶'}
-            </button>
-            <button 
-              className="toggle-btn greeting-btn"
-              onClick={() => setShowGreetingModal(true)}
-              title="温馨问候"
-            >
-              <span className="toggle-icon">💝</span>
-              天天开心
-            </button>
-            {user.is_admin && (
-              <button 
-                className={`toggle-btn admin-btn ${showAdminPanel ? 'active' : ''}`}
-              onClick={() => { setShowAdminPanel(!showAdminPanel); setShowTimeline(false); setShowSocial(false); setShowCircle(false); setShowAimTrainer(false); setShowFindDifference(false); setShowReactionTest(false); }}
-            >
-              <span className="toggle-icon">🛡️</span>
-              管理面板 {showAdminPanel ? '▼' : '▶'}
-            </button>
-          )}
-          <button 
-            className="toggle-btn photo-btn"
-            onClick={handleSelectBackgroundPhoto}
-            title="选择背景照片"
-          >
-            <span className="toggle-icon">🖼️</span>
-            {backgroundPhoto ? '更换照片' : '选择照片'}
-          </button>
-          <button 
-            className={`toggle-btn weather-btn ${showWeatherPanel ? 'active' : ''}`}
-            onClick={() => { setShowWeatherPanel(!showWeatherPanel); setShowTimeline(false); setShowSocial(false); setShowCircle(false); setShowAimTrainer(false); setShowAdminPanel(false); setShowMyNest(false); setShowFindDifference(false); setShowReactionTest(false); }}
-              title="查看天气"
-            >
-              <span className="toggle-icon">🌤️</span>
-              天气 {showWeatherPanel ? '▼' : '▶'}
-            </button>
-            <button 
-              className={`toggle-btn nest-btn ${showMyNest ? 'active' : ''}`}
-              onClick={() => { setShowMyNest(!showMyNest); setShowTimeline(false); setShowSocial(false); setShowCircle(false); setShowAimTrainer(false); setShowAdminPanel(false); setShowWeatherPanel(false); setShowSearch(false); setShowFindDifference(false); }}
-              title="我的小小窝"
-            >
-              <span className="toggle-icon">🏠</span>
-              小小窝 {showMyNest ? '▼' : '▶'}
-            </button>
-            <button 
-              className={`toggle-btn search-btn ${showSearch ? 'active' : ''}`}
-              onClick={() => { setShowSearch(!showSearch); setShowTimeline(false); setShowSocial(false); setShowCircle(false); setShowAimTrainer(false); setShowAdminPanel(false); setShowWeatherPanel(false); setShowMyNest(false); setShowMusic(false); setShowFindDifference(false); }}
-              title="网络搜索"
-            >
-              <span className="toggle-icon">🔍</span>
-              搜索 {showSearch ? '▼' : '▶'}
-            </button>
-            <button 
-              className={`toggle-btn music-btn ${showMusic ? 'active' : ''}`}
-              onClick={() => { setShowMusic(!showMusic); setShowTimeline(false); setShowSocial(false); setShowCircle(false); setShowAimTrainer(false); setShowAdminPanel(false); setShowWeatherPanel(false); setShowMyNest(false); setShowSearch(false); setShowWardrobe(false); setShowFindDifference(false); if (!showMusic) { setMusicList([]); setTimeout(() => { fetchRecommendations(); fetchExclusiveMusic(); }, 100); } }}
-              title="音乐播放器"
-            >
-              <span className="toggle-icon">🎵</span>
-              音乐 {showMusic ? '▼' : '▶'}
-            </button>
-            <button 
-              className={`toggle-btn wardrobe-btn ${showWardrobe ? 'active' : ''}`}
-              onClick={() => { setShowWardrobe(!showWardrobe); setShowTimeline(false); setShowSocial(false); setShowCircle(false); setShowAimTrainer(false); setShowAdminPanel(false); setShowWeatherPanel(false); setShowMyNest(false); setShowSearch(false); setShowMusic(false); setShowFindDifference(false); if (!showWardrobe) fetchWardrobeItems(); }}
-              title="小衣柜"
-            >
-              <span className="toggle-icon">👔</span>
-              小衣柜 {showWardrobe ? '▼' : '▶'}
-            </button>
-            <button 
-              className={`toggle-btn pet-btn ${!petVisible ? 'active' : ''}`}
-              onClick={() => setPetVisible(!petVisible)}
-              title={petVisible ? '隐藏宠物' : '召唤宠物'}
-            >
-              <span className="toggle-icon">🐾</span>
-              {petVisible ? '隐藏' : '召唤'}
-            </button>
-          </div>
-          
-          <div className="time-display">
-            <div className="current-time">{time.toLocaleTimeString('zh-CN', { hour12: false })}</div>
-            <div className="current-date">
-              {time.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
-            </div>
-            {weather && (
-              <div className="current-weather">
-                <span className="weather-icon">{weather.icon}</span>
-                <span className="weather-text">{weather.temp}°C {weather.description}</span>
-              </div>
-            )}
-          </div>
-        </header>
+        <Header
+          user={user}
+          time={time}
+          weather={weather}
+          showTimeline={showTimeline}
+          setShowTimeline={setShowTimeline}
+          showSocial={showSocial}
+          setShowSocial={setShowSocial}
+          showGameZone={showGameZone}
+          setShowGameZone={setShowGameZone}
+          showAdminPanel={showAdminPanel}
+          setShowAdminPanel={setShowAdminPanel}
+          showWeatherPanel={showWeatherPanel}
+          setShowWeatherPanel={setShowWeatherPanel}
+          showMyNest={showMyNest}
+          setShowMyNest={setShowMyNest}
+          showSearch={showSearch}
+          setShowSearch={setShowSearch}
+          showMusic={showMusic}
+          setShowMusic={setShowMusic}
+          showWardrobe={showWardrobe}
+          setShowWardrobe={setShowWardrobe}
+          petVisible={petVisible}
+          setPetVisible={setPetVisible}
+          setShowChangeUsernameModal={setShowChangeUsernameModal}
+          setShowGreetingModal={setShowGreetingModal}
+          handleLogout={handleLogout}
+          fetchRecommendations={fetchRecommendations}
+          fetchExclusiveMusic={fetchExclusiveMusic}
+          fetchWardrobeItems={fetchWardrobeItems}
+        />
 
         <main className="dash-main">
           {showTimeline && (
@@ -1912,381 +1320,253 @@ function App() {
           )}
           
           {showSocial && (
-            <section className="social-section">
-              <div className="section-header">
-                <h2>社交中心</h2>
+            <section className="social-section combined-social">
+              <div className="section-header social-header-tabs">
+                <button 
+                  className={`social-tab-btn ${socialTab === 'chat' ? 'active' : ''}`}
+                  onClick={() => setSocialTab('chat')}
+                >
+                  💬 聊天
+                </button>
+                <button 
+                  className={`social-tab-btn ${socialTab === 'circle' ? 'active' : ''}`}
+                  onClick={() => setSocialTab('circle')}
+                >
+                  📸 生活圈
+                </button>
               </div>
               
-              <div className="social-content">
-                <div className="friends-panel">
-                  <div className="search-box">
-                    <input 
-                      type="text" 
-                      placeholder="输入 6 位 ID 搜好友..." 
-                      value={searchId}
-                      onChange={e => setSearchId(e.target.value)}
-                      maxLength={6}
-                    />
-                    <button onClick={handleSearchUser} className="primary-btn">搜索</button>
+              {socialTab === 'chat' ? (
+                <div className="social-content">
+                  <div className="friends-panel">
+                    <div className="search-box">
+                      <input 
+                        type="text" 
+                        placeholder="输入 6 位 ID 搜好友..." 
+                        value={searchId}
+                        onChange={e => setSearchId(e.target.value)}
+                        maxLength={6}
+                      />
+                      <button onClick={handleSearchUser} className="primary-btn">搜索</button>
+                    </div>
+
+                    {searchResult && (
+                      <div className="search-result-card">
+                        <p>找到用户: <b>{searchResult.username}</b> (ID: {searchResult.unique_id})</p>
+                        <button onClick={() => handleAddFriend(searchResult.id)} className="primary-btn">发送好友申请</button>
+                        <button onClick={() => handleDevAccept(searchResult.id)} className="dev-btn">[测试] 强制通过</button>
+                      </div>
+                    )}
+
+                    {friendRequests.length > 0 && (
+                      <div className="friend-requests">
+                        <h3>待处理申请 ({friendRequests.length})</h3>
+                        <ul>
+                          {friendRequests.map(request => (
+                            <li key={request.requester_id} className="friend-request-item">
+                              <div className="friend-info">
+                                <span className="friend-name">{request.username}</span>
+                                <span className="friend-id">ID: {request.unique_id}</span>
+                              </div>
+                              <button onClick={() => handleAcceptFriend(request.requester_id)} className="accept-btn">通过</button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="friends-list">
+                      <h3>我的好友 ({friends.length})</h3>
+                      {friends.length === 0 ? (
+                        <p className="empty-friends">暂时还没有好友哦，快去搜索添加吧！</p>
+                      ) : (
+                        <ul>
+                          {friends.map(friend => (
+                            <li 
+                              key={friend.id} 
+                              className={`friend-item ${selectedFriend?.id === friend.id ? 'active' : ''}`}
+                            >
+                              <div 
+                                className="friend-info"
+                                onClick={() => handleSelectFriend(friend)}
+                              >
+                                <b>{friend.username}</b>
+                                <span className="friend-id">ID: {friend.unique_id}</span>
+                              </div>
+                              <div className="friend-actions">
+                                <span className="chat-indicator" onClick={() => handleSelectFriend(friend)}>💬</span>
+                                <button 
+                                  className="delete-friend-btn"
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteFriend(friend.id); }}
+                                >
+                                  删除
+                                </button>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                   </div>
 
-                  {searchResult && (
-                    <div className="search-result-card">
-                      <p>找到用户: <b>{searchResult.username}</b> (ID: {searchResult.unique_id})</p>
-                      <button onClick={() => handleAddFriend(searchResult.id)} className="primary-btn">发送好友申请</button>
-                      <button onClick={() => handleDevAccept(searchResult.id)} className="dev-btn">[测试] 强制通过</button>
-                    </div>
-                  )}
-
-                  {friendRequests.length > 0 && (
-                    <div className="friend-requests">
-                      <h3>待处理申请 ({friendRequests.length})</h3>
-                      <ul>
-                        {friendRequests.map(request => (
-                          <li key={request.requester_id} className="friend-request-item">
-                            <div className="friend-info">
-                              <span className="friend-name">{request.username}</span>
-                              <span className="friend-id">ID: {request.unique_id}</span>
+                  <div className="chat-panel">
+                    {selectedFriend ? (
+                      <div className="chat-window">
+                        <div className="chat-header">
+                          <div className="chat-partner">
+                            <span className="partner-name">{selectedFriend.username}</span>
+                            <span className="partner-id">ID: {selectedFriend.unique_id}</span>
+                          </div>
+                          <button className="close-chat" onClick={() => setSelectedFriend(null)}>×</button>
+                        </div>
+                        
+                        <div className="messages-container">
+                          {messages.length === 0 ? (
+                            <div className="empty-messages">
+                              <span className="empty-icon">💬</span>
+                              <p>开始与 {selectedFriend.username} 聊天吧！</p>
                             </div>
-                            <button onClick={() => handleAcceptFriend(request.requester_id)} className="accept-btn">通过</button>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  <div className="friends-list">
-                    <h3>我的好友 ({friends.length})</h3>
-                    {friends.length === 0 ? (
-                      <p className="empty-friends">暂时还没有好友哦，快去搜索添加吧！</p>
-                    ) : (
-                      <ul>
-                        {friends.map(friend => (
-                          <li 
-                            key={friend.id} 
-                            className={`friend-item ${selectedFriend?.id === friend.id ? 'active' : ''}`}
-                          >
-                            <div 
-                              className="friend-info"
-                              onClick={() => handleSelectFriend(friend)}
-                            >
-                              <b>{friend.username}</b>
-                              <span className="friend-id">ID: {friend.unique_id}</span>
-                            </div>
-                            <div className="friend-actions">
-                              <span className="chat-indicator" onClick={() => handleSelectFriend(friend)}>💬</span>
-                              <button 
-                                className="delete-friend-btn"
-                                onClick={(e) => { e.stopPropagation(); handleDeleteFriend(friend.id); }}
+                          ) : (
+                            messages.map((msg, index) => (
+                              <div 
+                                key={index} 
+                                className={`message ${msg.sender_id === user.id ? 'sent' : 'received'}`}
                               >
-                                删除
-                              </button>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
+                                <div className="message-content">
+                                  {msg.sender_id !== user.id && (
+                                    <span className="message-sender">{msg.sender_name}</span>
+                                  )}
+                                  <span className="message-text">{msg.content}</span>
+                                  <span className="message-time">{formatMessageTime(msg.timestamp)}</span>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                          <div ref={messagesEndRef} />
+                        </div>
+                        
+                        <div className="message-input-area">
+                          <input 
+                            type="text" 
+                            value={newMessage}
+                            onChange={e => setNewMessage(e.target.value)}
+                            placeholder="输入消息..."
+                            onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
+                            className="message-input"
+                          />
+                          <button onClick={handleSendMessage} className="primary-btn send-btn">发送</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="no-chat-selected">
+                        <span className="empty-icon">👥</span>
+                        <p>选择一个好友开始聊天</p>
+                      </div>
                     )}
                   </div>
                 </div>
-
-                <div className="chat-panel">
-                  {selectedFriend ? (
-                    <div className="chat-window">
-                      <div className="chat-header">
-                        <div className="chat-partner">
-                          <span className="partner-name">{selectedFriend.username}</span>
-                          <span className="partner-id">ID: {selectedFriend.unique_id}</span>
-                        </div>
-                        <button className="close-chat" onClick={() => setSelectedFriend(null)}>×</button>
-                      </div>
-                      
-                      <div className="messages-container">
-                        {messages.length === 0 ? (
-                          <div className="empty-messages">
-                            <span className="empty-icon">💬</span>
-                            <p>开始与 {selectedFriend.username} 聊天吧！</p>
-                          </div>
-                        ) : (
-                          messages.map((msg, index) => (
-                            <div 
-                              key={index} 
-                              className={`message ${msg.sender_id === user.id ? 'sent' : 'received'}`}
-                            >
-                              <div className="message-content">
-                                {msg.sender_id !== user.id && (
-                                  <span className="message-sender">{msg.sender_name}</span>
-                                )}
-                                <span className="message-text">{msg.content}</span>
-                                <span className="message-time">{formatMessageTime(msg.timestamp)}</span>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                        <div ref={messagesEndRef} />
-                      </div>
-                      
-                      <div className="message-input-area">
-                        <input 
-                          type="text" 
-                          value={newMessage}
-                          onChange={e => setNewMessage(e.target.value)}
-                          placeholder="输入消息..."
-                          onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-                          className="message-input"
+              ) : (
+                <div className="circle-content">
+                  <div className="create-post-card">
+                    <textarea
+                      value={newPostContent}
+                      onChange={e => setNewPostContent(e.target.value)}
+                      placeholder="分享你的心情..."
+                      className="post-textarea"
+                    />
+                    
+                    <div className="post-actions">
+                      <div className="upload-area">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/ogg"
+                          onChange={handleFileSelect}
+                          className="file-input"
                         />
-                        <button onClick={handleSendMessage} className="primary-btn send-btn">发送</button>
+                        <button 
+                          onClick={() => fileInputRef.current?.click()}
+                          className="upload-btn"
+                          disabled={uploading}
+                        >
+                          {uploading ? '上传中...' : '📷 上传照片/视频'}
+                        </button>
                       </div>
+                      
+                      {uploadedMedia && (
+                        <div className="uploaded-preview">
+                          {uploadedMedia.type === 'image' ? (
+                            <img src={uploadedMedia.url} alt="Preview" className="preview-image" />
+                          ) : (
+                            <video src={uploadedMedia.url} controls className="preview-video" />
+                          )}
+                          <button onClick={() => setUploadedMedia(null)} className="remove-media-btn">×</button>
+                        </div>
+                      )}
+                      
+                      <button 
+                        onClick={handleCreatePost}
+                        className="primary-btn post-submit-btn"
+                      >
+                        发布
+                      </button>
                     </div>
-                  ) : (
-                    <div className="no-chat-selected">
-                      <span className="empty-icon">👥</span>
-                      <p>选择一个好友开始聊天</p>
-                    </div>
-                  )}
+                  </div>
+
+                  <div className="posts-list">
+                    {posts.length === 0 ? (
+                      <div className="empty-posts">
+                        <div className="empty-icon">📝</div>
+                        <p>还没有动态，快来发布第一条吧！</p>
+                      </div>
+                    ) : (
+                      posts.map(post => (
+                        <div key={post.id} className="post-card">
+                          <div className="post-header">
+                            <div className="post-author">
+                              <span className="author-name">{post.username}</span>
+                              <span className="post-time">{formatTime(post.created_at)}</span>
+                            </div>
+                            {post.user_id === user.id && (
+                              <button onClick={() => handleDeletePost(post.id)} className="delete-post-btn">删除</button>
+                            )}
+                          </div>
+                          <p className="post-content">{post.content}</p>
+                          {post.media_url && (
+                            <div 
+                              className="post-media"
+                              onClick={() => setPreviewMedia({ url: post.media_url, type: post.media_type })}
+                            >
+                              {post.media_type === 'image' ? (
+                                <img src={post.media_url} alt="Post media" className="post-image" />
+                              ) : (
+                                <div className="video-thumbnail">
+                                  <img 
+                                    src={post.media_url} 
+                                    alt="Video thumbnail" 
+                                    className="video-thumb" 
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2395a5a6" stroke-width="2"%3E%3Cpolygon points="5 3 19 12 5 21 5 3"/%3E%3C/svg%3E';
+                                    }}
+                                  />
+                                  <div className="play-overlay">▶</div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </section>
           )}
 
           {showGameZone && (
             <section className="game-zone-section">
               <GameZone onClose={() => setShowGameZone(false)} />
-            </section>
-          )}
-
-          {showAimTrainer && (
-            <section className="aim-trainer-section">
-              <div className="section-header">
-                <h2>🎯 定位练习</h2>
-                <p className="subtitle">模拟无畏契约定位训练</p>
-              </div>
-
-              <div className="aim-game-container">
-                <div className="game-stats">
-                  <div className="stat-item">
-                    <span className="stat-label">得分</span>
-                    <span className="stat-value score">{score}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">命中率</span>
-                    <span className="stat-value">{shotsFired > 0 ? Math.round((hits / shotsFired) * 100) : 0}%</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">时间</span>
-                    <span className="stat-value">{timeElapsed}s</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">连击</span>
-                    <span className="stat-value combo">x{combo}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">最高连击</span>
-                    <span className="stat-value">x{maxCombo}</span>
-                  </div>
-                </div>
-
-                <div className="game-controls">
-                  {!gameActive ? (
-                    <button onClick={startAimGame} className="primary-btn game-start-btn">开始练习</button>
-                  ) : (
-                    <button onClick={stopAimGame} className="game-stop-btn">停止练习</button>
-                  )}
-                </div>
-
-                <div 
-                  className={`game-area ${gameActive ? 'active' : ''}`}
-                  onClick={gameActive ? handleMissClick : undefined}
-                >
-                  {!gameActive ? (
-                    <div className="game-instructions">
-                      <h3>游戏说明</h3>
-                      <ul>
-                        <li>点击屏幕上出现的目标</li>
-                        <li>目标越小，得分越高</li>
-                        <li>反应越快，得分越高</li>
-                        <li>连续命中可获得连击加成</li>
-                        <li>点击空白区域会重置连击</li>
-                      </ul>
-                    </div>
-                  ) : (
-                    targets.map(target => (
-                      <div
-                        key={target.id}
-                        className="aim-target"
-                        style={{
-                          left: target.x,
-                          top: target.y,
-                          width: target.size,
-                          height: target.size,
-                          backgroundColor: target.color,
-                        }}
-                        onClick={(e) => handleTargetClick(target.id, e)}
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
-            </section>
-          )}
-
-          {showReactionTest && (
-            <section className="reaction-test-section">
-              <div className="section-header">
-                <h2>⚡ 反应测试</h2>
-                <p className="subtitle">测试你的反应速度</p>
-              </div>
-
-              <div className="reaction-game-container">
-                <div className="reaction-stats">
-                  <div className="stat-item">
-                    <span className="stat-label">本次反应</span>
-                    <span className="stat-value reaction-time">{reactionTime > 0 ? `${reactionTime}ms` : '--'}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">最佳记录</span>
-                    <span className="stat-value best-time">{bestReactionTime > 0 ? `${bestReactionTime}ms` : '--'}</span>
-                  </div>
-                </div>
-
-                <div className="game-controls">
-                  {!reactionGameActive ? (
-                    <button onClick={startReactionGame} className="primary-btn game-start-btn">开始测试</button>
-                  ) : (
-                    <button onClick={stopReactionGame} className="game-stop-btn">停止测试</button>
-                  )}
-                </div>
-
-                <div 
-                  className={`reaction-area ${reactionState}`}
-                  onClick={reactionGameActive ? handleReactionClick : undefined}
-                >
-                  {!reactionGameActive ? (
-                    <div className="game-instructions">
-                      <h3>游戏说明</h3>
-                      <ul>
-                        <li>等待屏幕变绿</li>
-                        <li>变绿后立即点击</li>
-                        <li>提前点击会重新开始</li>
-                      </ul>
-                    </div>
-                  ) : reactionState === 'waiting' ? (
-                    <div className="waiting-content">
-                      <span className="waiting-icon">🔴</span>
-                      <h3>等待...</h3>
-                      <p>变绿后立即点击！</p>
-                    </div>
-                  ) : reactionState === 'ready' ? (
-                    <div className="ready-content">
-                      <span className="ready-icon">🟢</span>
-                      <h3>点击！</h3>
-                    </div>
-                  ) : reactionTime === -1 ? (
-                    <div className="result-content too-early">
-                      <span className="result-icon">❌</span>
-                      <h3>太早了！</h3>
-                      <p>请等待变绿后再点击</p>
-                    </div>
-                  ) : (
-                    <div className="result-content success">
-                      <span className="result-icon">✅</span>
-                      <h3>你的反应时间</h3>
-                      <p className="time-display">{reactionTime} ms</p>
-                      {reactionTime < 200 && <p className="remark">⚡ 神级反应！</p>}
-                      {reactionTime >= 200 && reactionTime < 300 && <p className="remark">👍 反应很快！</p>}
-                      {reactionTime >= 300 && reactionTime < 400 && <p className="remark">😊 正常反应</p>}
-                      {reactionTime >= 400 && <p className="remark">🐢 还需加油！</p>}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
-          )}
-
-          {showFindDifference && (
-            <section className="find-difference-section">
-              <div className="section-header">
-                <h2>🔍 找不同</h2>
-                <p className="subtitle">找出两张图片中的不同之处</p>
-              </div>
-
-              <div className="difference-game-container">
-                <div className="game-stats">
-                  <div className="stat-item">
-                    <span className="stat-label">得分</span>
-                    <span className="stat-value score">{differenceScore}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">进度</span>
-                    <span className="stat-value">{differencesFound}/{totalDifferences}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">时间</span>
-                    <span className="stat-value">{differenceTime}s</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">提示</span>
-                    <span className="stat-value">{hintsRemaining}/3</span>
-                  </div>
-                </div>
-
-                <div className="game-controls">
-                  {!differenceGameActive ? (
-                    <button onClick={startDifferenceGame} className="primary-btn game-start-btn">开始游戏</button>
-                  ) : (
-                    <>  
-                      <button onClick={stopDifferenceGame} className="game-stop-btn">停止游戏</button>
-                      <button 
-                        onClick={useHint} 
-                        className="hint-btn" 
-                        disabled={hintsRemaining <= 0}
-                      >
-                        💡 使用提示 ({hintsRemaining})
-                      </button>
-                    </>
-                  )}
-                </div>
-
-                <div className="difference-images-container">
-                  {!differenceGameActive ? (
-                    <div className="game-instructions">
-                      <h3>游戏说明</h3>
-                      <ul>
-                        <li>找出两张图片中的{totalDifferences}处不同</li>
-                        <li>点击右图中的不同之处</li>
-                        <li>每找到一个不同得100分</li>
-                        <li>使用提示会扣50分</li>
-                        <li>越快完成越好</li>
-                      </ul>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="difference-image-wrapper">
-                        <img src={differenceImages?.left} alt="左图" className="difference-image" />
-                        <span className="image-label">原图</span>
-                      </div>
-                      <div 
-                        className="difference-image-wrapper clickable"
-                        onClick={handleDifferenceClick}
-                      >
-                        <img src={differenceImages?.right} alt="右图" className="difference-image" />
-                        <span className="image-label">找不同</span>
-                        {differenceItems.map(item => (
-                          <div
-                            key={item.id}
-                            className={`difference-marker ${item.found ? 'found' : ''}`}
-                            style={{
-                              left: item.x - item.size - 10,
-                              top: item.y - item.size - 10,
-                              width: item.size * 2 + 20,
-                              height: item.size * 2 + 20,
-                            }}
-                          />
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
             </section>
           )}
 
@@ -2379,127 +1659,15 @@ function App() {
             </section>
           )}
 
-          {showCircle && (
-            <section className="circle-section">
-              <div className="section-header">
-                <h2>生活圈</h2>
-                <p className="subtitle">分享你的精彩时刻</p>
-              </div>
-
-              <div className="create-post-card">
-                <textarea
-                  value={newPostContent}
-                  onChange={e => setNewPostContent(e.target.value)}
-                  placeholder="分享你的心情..."
-                  className="post-textarea"
-                />
-                
-                <div className="post-actions">
-                  <div className="upload-area">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/ogg"
-                      onChange={handleFileSelect}
-                      className="file-input"
-                    />
-                    <button 
-                      onClick={() => fileInputRef.current?.click()}
-                      className="upload-btn"
-                      disabled={uploading}
-                    >
-                      {uploading ? '上传中...' : '📷 上传照片/视频'}
-                    </button>
-                  </div>
-                  
-                  {uploadedMedia && (
-                    <div className="uploaded-preview">
-                      {uploadedMedia.type === 'image' ? (
-                        <img src={`''${uploadedMedia.url}`} alt="Preview" className="preview-image" />
-                      ) : (
-                        <video src={`''${uploadedMedia.url}`} controls className="preview-video" />
-                      )}
-                      <button onClick={() => setUploadedMedia(null)} className="remove-media-btn">×</button>
-                    </div>
-                  )}
-                  
-                  <button 
-                    onClick={handleCreatePost}
-                    className="primary-btn post-submit-btn"
-                  >
-                    发布
-                  </button>
-                </div>
-              </div>
-
-              <div className="posts-list">
-                {posts.length === 0 ? (
-                  <div className="empty-posts">
-                    <div className="empty-icon">📝</div>
-                    <p>还没有动态，快来发布第一条吧！</p>
-                  </div>
-                ) : (
-                  posts.map(post => (
-                    <div key={post.id} className="post-card">
-                      <div className="post-header">
-                        <div className="post-author">
-                          <span className="author-name">{post.username}</span>
-                          <span className="post-time">{formatTime(post.created_at)}</span>
-                        </div>
-                        {post.user_id === user.id && (
-                          <button onClick={() => handleDeletePost(post.id)} className="delete-post-btn">删除</button>
-                        )}
-                      </div>
-                      <p className="post-content">{post.content}</p>
-                      {post.media_url && (
-                        <div 
-                          className="post-media"
-                          onClick={() => setPreviewMedia({ url: post.media_url, type: post.media_type })}
-                        >
-                          {post.media_type === 'image' ? (
-                            <img src={`''${post.media_url}`} alt="Post media" className="post-image" />
-                          ) : (
-                            <div className="video-thumbnail">
-                              <img 
-                                src={`''${post.media_url}`} 
-                                alt="Video thumbnail" 
-                                className="video-thumb" 
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2395a5a6" stroke-width="2"%3E%3Cpolygon points="5 3 19 12 5 21 5 3"/%3E%3C/svg%3E';
-                                }}
-                              />
-                              <div className="play-overlay">▶</div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            </section>
-          )}
-          
-          {!showTimeline && !showSocial && !showCircle && !showAimTrainer && !showAdminPanel && !showWeatherPanel && !showMyNest && !showSearch && (
+          {!showTimeline && !showSocial && !showGameZone && !showAdminPanel && !showWeatherPanel && !showMyNest && !showSearch && !showMusic && !showWardrobe && (
             <div className="empty-main">
-              {backgroundPhoto && (
-                <img 
-                  src={backgroundPhoto} 
-                  alt="Background" 
-                  className="background-photo"
-                  crossOrigin="anonymous"
-                />
-              )}
-              {!backgroundPhoto && (
-                <div className="empty-overlay">
-                  <div className="empty-content">
-                    <div className="empty-icon">🏠</div>
-                    <h3>欢迎回来</h3>
-                    <p>选择上方功能开始你的一天</p>
-                  </div>
+              <div className="empty-overlay">
+                <div className="empty-content">
+                  <div className="empty-icon">🏠</div>
+                  <h3>欢迎回来</h3>
+                  <p>选择上方功能开始你的一天</p>
                 </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -3557,185 +2725,14 @@ function App() {
       }
 
   return (
-    <div className={`app ${loginPhase > 0 ? 'login-transition' : ''}`} style={{ filter: loginPhase > 0 ? `blur(${blurAmount}px)` : 'none' }}>
-      {/* Starfield Background */}
-      <div className="starfield-container">
-        {[...Array(200)].map((_, i) => {
-          const speedClass = ['slow', 'medium', 'fast'][i % 3];
-          return (
-            <div
-              key={i}
-              className={`star ${speedClass}`}
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                width: `${Math.random() * 2 + 1}px`,
-                height: `${Math.random() * 2 + 1}px`,
-                animationDelay: `${Math.random() * 12}s`
-              }}
-            />
-          );
-        })}
-      </div>
-      
-      {/* Particles */}
-      {showParticles && (
-        <div className="particles-container">
-          {particles.map((particle) => (
-            <div
-              key={particle.id}
-              className={`particle ${particle.color}`}
-              style={{
-                width: `${particle.size}px`,
-                height: `${particle.size}px`,
-                animationDelay: `${particle.delay}s`,
-                animationDuration: `${particle.duration}s`,
-                '--tx': `${particle.tx}px`,
-                '--ty': `${particle.ty}px`
-              } as React.CSSProperties}
-            />
-          ))}
-        </div>
-      )}
-      
-      {/* Ripple Effect */}
-      {showRipple && (
-        <div className="ripple-container">
-          <div className="ripple ripple-1"></div>
-          <div className="ripple ripple-2"></div>
-          <div className="ripple ripple-3"></div>
-        </div>
-      )}
-      
-      {/* New Background */}
-      {showNewBackground && (
-        <div className="new-background">
-          {showEnergyCore && (
-            <div className="energy-core">
-              <div className="core-inner"></div>
-              <div className="core-outer"></div>
-              <div className="core-glow"></div>
-            </div>
-          )}
-          {showCracks && (
-            <div className="cracks-container">
-              {cracks.map((crack) => (
-                <div
-                  key={crack.id}
-                  className="crack-line"
-                  style={{
-                    transform: `rotate(${crack.angle}deg)`,
-                    animationDelay: `${crack.delay}s`
-                  } as React.CSSProperties}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-      
-      {/* Sky Blue Curtain */}
-      {showCurtain && (
-        <div className="curtain-container">
-          <div className={`curtain-left ${curtainOpen ? 'opening' : ''}`}></div>
-          <div className={`curtain-right ${curtainOpen ? 'opening' : ''}`}></div>
-          <div className="curtain-shimmer"></div>
-        </div>
-      )}
-      
-      {/* Fullscreen Mask */}
-      {showMask && (
-        <div className={`fullscreen-mask ${loginPhase >= 2 ? 'mask-expand' : ''}`}>
-          <div className="mask-gradient"></div>
-        </div>
-      )}
-      
-      {/* Auth Container */}
-      <div className={`auth-container ${isTransitioning ? 'transitioning' : ''} ${loginPhase > 0 ? 'collapsing' : ''}`}>
-        <div className={`auth-card ${isLoginView ? 'login-view' : 'register-view'} ${isTransitioning ? 'flip-transition' : ''}`}>
-          <div className="logo-circle">
-            <span className="logo-icon">S</span>
-          </div>
-          <h1 className="main-title">Slogan</h1>
-          
-          <div className={`form-container ${isTransitioning ? 'form-transition' : ''}`}>
-            {isLoginView ? (
-              <form onSubmit={handleLogin} className={`auth-form ${isTransitioning ? 'fade-out' : ''}`}>
-                <h2 className="form-title">登录</h2>
-                <div className="input-group">
-                  <input 
-                    type="text" 
-                    placeholder="6位数字 ID" 
-                    value={uniqueId} 
-                    onChange={(e) => setUniqueId(e.target.value)} 
-                    required 
-                    className="auth-input"
-                  />
-                  <div className="input-line"></div>
-                  <div className="input-glow"></div>
-                </div>
-                <div className="input-group">
-                  <input 
-                    type="password" 
-                    placeholder="密码" 
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    required 
-                    className="auth-input"
-                  />
-                  <div className="input-line"></div>
-                  <div className="input-glow"></div>
-                </div>
-                <button type="submit" className={`primary-btn login-btn ${loginPhase === 1 ? 'button-contract' : ''}`}>登录</button>
-                <p className="toggle-auth">没有账号？ <span onClick={handleToggleAuth}>去注册</span></p>
-              </form>
-            ) : regResult ? (
-              <div className="result-card">
-                <div className="success-icon">✓</div>
-                <h2>注册成功！</h2>
-                <p>你的唯一登录 ID 是：</p>
-                <div className="id-box">{regResult.user.unique_id}</div>
-                <p className="hint">请牢记此 ID，它是你的唯一登录账号。</p>
-                <button className="primary-btn" onClick={() => { setRegResult(null); handleToggleAuth(); }}>返回登录</button>
-              </div>
-            ) : (
-              <form onSubmit={handleRegister} className={`auth-form ${isTransitioning ? 'fade-out' : ''}`}>
-                <h2 className="form-title">创建账号</h2>
-                <div className="input-group">
-                  <input 
-                    type="text" 
-                    placeholder="昵称" 
-                    value={username} 
-                    onChange={(e) => setUsername(e.target.value)} 
-                    required 
-                    className="auth-input"
-                  />
-                  <div className="input-line"></div>
-                  <div className="input-glow"></div>
-                </div>
-                <div className="input-group">
-                  <input 
-                    type="password" 
-                    placeholder="密码" 
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    required 
-                    className="auth-input"
-                  />
-                  <div className="input-line"></div>
-                  <div className="input-glow"></div>
-                </div>
-                <button type="submit" className="primary-btn">立即注册</button>
-                <p className="toggle-auth">已有账号？ <span onClick={handleToggleAuth}>去登录</span></p>
-              </form>
-            )}
-          </div>
-          
-          <div className="transition-mask"></div>
-        </div>
-      </div>
-      
-    </div>
+    <AuthContainer
+      setUser={setUser}
+      setDashboardOpacity={setDashboardOpacity}
+      setDashboardScale={setDashboardScale}
+      setBlurAmount={setBlurAmount}
+      setShowWelcomeModal={setShowWelcomeModal}
+      blurAmount={blurAmount}
+    />
   );
 }
 

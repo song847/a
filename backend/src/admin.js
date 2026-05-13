@@ -1,15 +1,8 @@
 const { getDb } = require('./db');
 
 function getAllUsers(req, res) {
-  const { admin_id } = req.query;
-  
   const db = getDb();
   try {
-    const admin = db.prepare('SELECT is_admin FROM users WHERE id = ?').get(admin_id);
-    if (!admin || admin.is_admin !== 1) {
-      return res.status(403).json({ success: false, error: '无管理员权限' });
-    }
-
     const users = db.prepare('SELECT id, username, unique_id, is_admin FROM users').all();
     res.json({ success: true, users });
   } catch (err) {
@@ -18,15 +11,11 @@ function getAllUsers(req, res) {
 }
 
 function deleteUser(req, res) {
-  const { admin_id, user_id } = req.body;
+  const { user_id } = req.body;
+  const admin_id = req.user.id;
   
   const db = getDb();
   try {
-    const admin = db.prepare('SELECT is_admin FROM users WHERE id = ?').get(admin_id);
-    if (!admin || admin.is_admin !== 1) {
-      return res.status(403).json({ success: false, error: '无管理员权限' });
-    }
-
     if (admin_id == user_id) {
       return res.status(400).json({ success: false, error: '不能删除自己' });
     }
@@ -44,15 +33,10 @@ function deleteUser(req, res) {
 }
 
 function updateUser(req, res) {
-  const { admin_id, user_id, username, is_admin } = req.body;
+  const { user_id, username, is_admin } = req.body;
   
   const db = getDb();
   try {
-    const admin = db.prepare('SELECT is_admin FROM users WHERE id = ?').get(admin_id);
-    if (!admin || admin.is_admin !== 1) {
-      return res.status(403).json({ success: false, error: '无管理员权限' });
-    }
-
     const updates = [];
     const params = [];
 

@@ -1,9 +1,10 @@
 const { getDb } = require('./db');
 
 function sendMessage(req, res) {
-  const { sender_id, receiver_id, content } = req.body;
+  const { receiver_id, content } = req.body;
+  const sender_id = req.user.id;
   
-  if (!sender_id || !receiver_id || !content.trim()) {
+  if (!receiver_id || !content.trim()) {
     return res.status(400).json({ success: false, error: '缺少必要参数' });
   }
 
@@ -29,9 +30,10 @@ function sendMessage(req, res) {
 }
 
 function getMessages(req, res) {
-  const { user_id, friend_id } = req.query;
+  const { friend_id } = req.query;
+  const user_id = req.user.id;
   
-  if (!user_id || !friend_id) {
+  if (!friend_id) {
     return res.status(400).json({ success: false, error: '缺少必要参数' });
   }
 

@@ -1,8 +1,10 @@
 const { getDb } = require('./db');
 
 function createNestItem(req, res) {
-  const { user_id, content, category, media_url, media_type } = req.body;
-  if (!user_id || (!content && !media_url)) {
+  const { content, category, media_url, media_type } = req.body;
+  const user_id = req.user.id;
+  
+  if (!content && !media_url) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
 
@@ -39,18 +41,12 @@ function createNestItem(req, res) {
 }
 
 function getNestItems(req, res) {
-  const { user_id } = req.query;
+  const user_id = req.user.id;
   
   const db = getDb();
   try {
-    let rows;
-    if (user_id) {
-      const query = 'SELECT * FROM nest WHERE user_id = ? ORDER BY created_at DESC';
-      rows = db.prepare(query).all(user_id);
-    } else {
-      const query = 'SELECT * FROM nest ORDER BY created_at DESC';
-      rows = db.prepare(query).all();
-    }
+    const query = 'SELECT * FROM nest WHERE user_id = ? ORDER BY created_at DESC';
+    const rows = db.prepare(query).all(user_id);
     res.json({ success: true, items: rows });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -59,7 +55,7 @@ function getNestItems(req, res) {
 
 function deleteNestItem(req, res) {
   const { id } = req.params;
-  const { user_id } = req.query;
+  const user_id = req.user.id;
   
   const db = getDb();
   try {
@@ -68,7 +64,7 @@ function deleteNestItem(req, res) {
       return res.status(404).json({ success: false, error: 'Item not found' });
     }
     
-    if (item.user_id !== parseInt(user_id)) {
+    if (item.user_id !== user_id && req.user.is_admin !== 1) {
       return res.status(403).json({ success: false, error: 'Permission denied' });
     }
     

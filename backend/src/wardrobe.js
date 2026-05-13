@@ -3,6 +3,7 @@ const path = require('path');
 const JimpModule = require('jimp');
 const Jimp = JimpModule.Jimp || JimpModule.default || JimpModule;
 const { intToRGBA, rgbaToInt } = JimpModule;
+const { getDb } = require('./db');
 
 const WARDROBE_DIR = path.join(__dirname, '../uploads/wardrobe');
 
@@ -1474,8 +1475,8 @@ function calculateMatchScore(selectedItem, candidateItem, occasion = null) {
   return Math.min(100, score);
 }
 
-function recommendMatch(selectedItem, occasion = null) {
-  const wardrobe = loadWardrobe();
+function recommendMatch(selectedItem, occasion = null, userId) {
+  const wardrobe = loadWardrobe(userId);
   const candidates = wardrobe.filter(item => item.id !== selectedItem.id);
   
   const scoredCandidates = candidates.map(item => ({
@@ -1542,8 +1543,8 @@ function getMatchReason(selectedItem, matchedItem) {
   return reasons.length > 0 ? reasons : ['搭配和谐美观'];
 }
 
-function generateSmartRecommendation(occasion = '日常') {
-  const wardrobe = loadWardrobe();
+function generateSmartRecommendation(occasion = '日常', userId) {
+  const wardrobe = loadWardrobe(userId);
   
   if (wardrobe.length < 3) {
     return [];
@@ -1565,7 +1566,7 @@ function generateSmartRecommendation(occasion = '日常') {
     '运动': [
       { categories: ['上衣', '下装', '鞋子'], style: '运动' }
     ],
-    '派对': [
+    '派单': [
       { categories: ['连衣裙', '鞋子'], style: '甜美' },
       { categories: ['上衣', '下装', '鞋子'], style: '优雅' }
     ],
@@ -1608,21 +1609,29 @@ function generateSmartRecommendation(occasion = '日常') {
   return [];
 }
 
-function loadWardrobe() {
+function loadWardrobe(userId) {
   try {
-    const data = fs.readFileSync(path.join(WARDROBE_DIR, 'wardrobe.json'), 'utf8');
-    return JSON.parse(data);
+    const db = getDb();
+    const rows = db.prepare('SELECT id, name, category, sub_category, color, style, image_url, created_at FROM wardrobe WHERE user_id = ? ORDER BY created_at DESC').all(userId);
+    return rows.map(row => ({
+      id: row.id.toString(),
+      name: row.name,
+      category: row.category,
+      subCategory: row.sub_category,
+      color: row.color,
+      style: row.style,
+      imageUrl: row.image_url,
+      createdAt: row.created_at
+    }));
   } catch (error) {
+    console.error('加载衣柜失败:', error);
     return [];
   }
 }
 
-function saveWardrobe(items) {
-  fs.writeFileSync(path.join(WARDROBE_DIR, 'wardrobe.json'), JSON.stringify(items, null, 2));
-}
-
 async function uploadClothes(req, res) {
   try {
+    const user_id = req.user.id;
     if (!req.file) {
       return res.status(400).json({ success: false, error: '请上传图片' });
     }
@@ -1645,26 +1654,20 @@ async function uploadClothes(req, res) {
     }
     
     const newItem = {
-      id: Date.now().toString(),
       name: req.body.name || '未命名',
       category: req.body.category || analysis.category,
       subCategory: req.body.subCategory || analysis.subCategory,
       color: req.body.color || analysis.mainColor,
-      secondaryColors: analysis.secondaryColors || [],
-      accentColors: analysis.accentColors || [],
       style: req.body.style || '休闲',
-      occasion: req.body.occasion || '日常',
       imageUrl: `/uploads/wardrobe/${uniqueName}`,
-      hasPattern: analysis.hasPattern || false,
-      patternType: analysis.patternType || '纯色',
-      features: analysis.features || {},
-      confidence: analysis.confidence || 0,
       createdAt: new Date().toISOString()
     };
     
-    const wardrobe = loadWardrobe();
-    wardrobe.push(newItem);
-    saveWardrobe(wardrobe);
+    const db = getDb();
+    const info = db.prepare('INSERT INTO wardrobe (user_id, name, category, sub_category, color, style, image_url, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
+      user_id, newItem.name, newItem.category, newItem.subCategory, newItem.color, newItem.style, newItem.imageUrl, newItem.createdAt
+    );
+    newItem.id = info.lastInsertRowid.toString();
     
     res.json({ 
       success: true, 
@@ -1683,29 +1686,35 @@ async function uploadClothes(req, res) {
 }
 
 function getWardrobeItems(req, res) {
-  const wardrobe = loadWardrobe();
+  const user_id = req.user.id;
+  const wardrobe = loadWardrobe(user_id);
   res.json({ success: true, items: wardrobe });
 }
 
 function deleteWardrobeItem(req, res) {
   try {
     const id = req.params.id;
-    let wardrobe = loadWardrobe();
-    const itemIndex = wardrobe.findIndex(item => item.id === id);
+    const user_id = req.user.id;
     
-    if (itemIndex === -1) {
+    const db = getDb();
+    const item = db.prepare('SELECT image_url, user_id FROM wardrobe WHERE id = ?').get(id);
+    
+    if (!item) {
       return res.status(404).json({ success: false, error: '物品不存在' });
     }
     
-    const item = wardrobe[itemIndex];
-    const imagePath = path.join(__dirname, '../', item.imageUrl);
+    if (item.user_id !== user_id && req.user.is_admin !== 1) {
+      return res.status(403).json({ success: false, error: '无权删除此物品' });
+    }
+    
+    const fileName = path.basename(item.image_url);
+    const imagePath = path.join(WARDROBE_DIR, fileName);
     
     if (fs.existsSync(imagePath)) {
       fs.unlinkSync(imagePath);
     }
     
-    wardrobe.splice(itemIndex, 1);
-    saveWardrobe(wardrobe);
+    db.prepare('DELETE FROM wardrobe WHERE id = ?').run(id);
     
     res.json({ success: true });
   } catch (error) {
@@ -1718,19 +1727,20 @@ function recommendMatches(req, res) {
   try {
     const itemId = req.query.itemId;
     const occasion = req.query.occasion || '日常';
+    const user_id = req.user.id;
     
     if (!itemId) {
       return res.status(400).json({ success: false, error: '请选择一件衣服' });
     }
     
-    const wardrobe = loadWardrobe();
+    const wardrobe = loadWardrobe(user_id);
     const selectedItem = wardrobe.find(item => item.id === itemId);
     
     if (!selectedItem) {
       return res.status(404).json({ success: false, error: '未找到选中的衣服' });
     }
     
-    const matchedItems = recommendMatch(selectedItem, occasion);
+    const matchedItems = recommendMatch(selectedItem, occasion, user_id);
     
     const colorHarmonyInfo = colorHarmony[selectedItem.color] || {};
     const colorRecommendations = [
@@ -1755,7 +1765,8 @@ function recommendMatches(req, res) {
 function smartRecommend(req, res) {
   try {
     const occasion = req.query.occasion || '日常';
-    const recommendations = generateSmartRecommendation(occasion);
+    const user_id = req.user.id;
+    const recommendations = generateSmartRecommendation(occasion, user_id);
     
     res.json({
       success: true,
@@ -1771,19 +1782,38 @@ function smartRecommend(req, res) {
 function updateWardrobeItem(req, res) {
   try {
     const id = req.params.id;
+    const user_id = req.user.id;
     const updates = req.body;
     
-    let wardrobe = loadWardrobe();
-    const itemIndex = wardrobe.findIndex(item => item.id === id);
+    const db = getDb();
+    const item = db.prepare('SELECT user_id FROM wardrobe WHERE id = ?').get(id);
     
-    if (itemIndex === -1) {
+    if (!item) {
       return res.status(404).json({ success: false, error: '物品不存在' });
     }
     
-    wardrobe[itemIndex] = { ...wardrobe[itemIndex], ...updates, updatedAt: new Date().toISOString() };
-    saveWardrobe(wardrobe);
+    if (item.user_id !== user_id && req.user.is_admin !== 1) {
+      return res.status(403).json({ success: false, error: '无权更新此物品' });
+    }
     
-    res.json({ success: true, item: wardrobe[itemIndex] });
+    const setClause = [];
+    const values = [];
+    if (updates.name !== undefined) { setClause.push('name = ?'); values.push(updates.name); }
+    if (updates.category !== undefined) { setClause.push('category = ?'); values.push(updates.category); }
+    if (updates.subCategory !== undefined) { setClause.push('sub_category = ?'); values.push(updates.subCategory); }
+    if (updates.color !== undefined) { setClause.push('color = ?'); values.push(updates.color); }
+    if (updates.style !== undefined) { setClause.push('style = ?'); values.push(updates.style); }
+    
+    if (setClause.length === 0) {
+      return res.json({ success: true });
+    }
+    
+    values.push(id);
+    db.prepare(`UPDATE wardrobe SET ${setClause.join(', ')} WHERE id = ?`).run(...values);
+    
+    const updatedItem = db.prepare('SELECT id, name, category, sub_category as subCategory, color, style, image_url as imageUrl, created_at as createdAt FROM wardrobe WHERE id = ?').get(id);
+    
+    res.json({ success: true, item: { ...updatedItem, id: updatedItem.id.toString() } });
   } catch (error) {
     console.error('更新失败:', error);
     res.status(500).json({ success: false, error: '更新失败' });

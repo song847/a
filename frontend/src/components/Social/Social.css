@@ -1,0 +1,109 @@
+/* Social Section - Combined Layout */
+.social-section {
+  flex: 1.2;
+  min-width: 450px;
+  display: flex;
+  flex-direction: column;
+}
+
+.combined-social {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.social-header-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: rgba(148, 163, 184, 0.05);
+  padding: 6px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.social-tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.social-tab-btn:hover {
+  color: var(--sky-600);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.social-tab-btn.active {
+  color: var(--sky-600);
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.social-content {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  height: 600px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.circle-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 8px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.circle-content::-webkit-scrollbar {
+  width: 5px;
+}
+
+.circle-content::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+}
+
+
+.friends-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.search-box {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.search-box input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.6);
+  transition: all 0.3s ease;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: var(--sky-400);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+}
+
